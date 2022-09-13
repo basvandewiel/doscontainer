@@ -10,7 +10,7 @@ struct Args {
 
     /// Disk size in bytes
     #[clap(short, long)]
-    size: u64,
+    size: u32,
 }
 fn main() {
     let args = Args::parse();

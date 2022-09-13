@@ -5,11 +5,11 @@ use std::io::prelude::*;
 #[derive(Debug)]
 pub struct Disk {
     path: PathBuf,
-    size: u64,
+    size: u32,
 }
 
 impl Disk {
-    pub fn new(path: &str, size: u64) -> Disk {
+    pub fn new(path: &str, size: u32) -> Disk {
         Disk {
             path: PathBuf::from(path),
             size: size,
