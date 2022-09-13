@@ -1,18 +1,23 @@
 use std::path::PathBuf;
 use std::fs::File;
-use std::io::prelude::*;
 
 #[derive(Debug)]
 pub struct Disk {
     path: PathBuf,
-    size: u32,
+    size: u64,
+    sector_count: u64,
+    bootcode: [u8; 446],
 }
 
 impl Disk {
-    pub fn new(path: &str, size: u32) -> Disk {
+    pub fn new(path: &str, size: u64) -> Disk {
+        let sector_size = 512;
+        let bootcode = include_bytes!("msdos622-bootcode.bin");
         Disk {
             path: PathBuf::from(path),
             size: size,
+            sector_count: size / sector_size,
+            bootcode: *bootcode,
         }
     }
     pub fn write(&self) {
