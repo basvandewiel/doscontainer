@@ -20,3 +20,11 @@ impl Disk {
         f.set_len(self.size).expect("Failed to grow file to requested size.");
     }
 }
+
+// Custom type for Cylinder/Head/Sector geometry
+#[derive(Debug)]
+pub struct CHS {
+    cylinder: u16,
+    head: u8,
+    sector: u8,
+}
