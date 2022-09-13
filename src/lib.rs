@@ -31,8 +31,10 @@ pub struct CHS {
 
 impl CHS {
     pub fn empty() -> CHS {
-        cylinder: 0,
-        head: 0,
-        sector: 0
+        CHS {
+            cylinder: 0,
+            head: 0,
+            sector: 0
+        }
     }
 }
