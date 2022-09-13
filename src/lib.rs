@@ -1,0 +1,22 @@
+use std::path::PathBuf;
+use std::fs::File;
+use std::io::prelude::*;
+
+#[derive(Debug)]
+pub struct Disk {
+    path: PathBuf,
+    size: u64,
+}
+
+impl Disk {
+    pub fn new(path: &str, size: u64) -> Disk {
+        Disk {
+            path: PathBuf::from(path),
+            size: size,
+        }
+    }
+    pub fn write(&self) {
+        let mut f = File::create(self.path.as_path()).expect("Failed to create file.");
+        f.set_len(self.size).expect("Failed to grow file to requested size.");
+    }
+}
