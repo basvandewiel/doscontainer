@@ -28,3 +28,11 @@ pub struct CHS {
     head: u8,
     sector: u8,
 }
+
+impl CHS {
+    pub fn empty() -> CHS {
+        cylinder: 0,
+        head: 0,
+        sector: 0
+    }
+}
