@@ -19,4 +19,5 @@ fn main() {
     my_disk.write_bootcode();
     println!("Create file at: {}", args.path);
     println!("Disk size will be: {} byes.", args.size);
+    println!("{:?}", my_disk);
 }
