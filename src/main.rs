@@ -14,7 +14,7 @@ struct Args {
 }
 fn main() {
     let args = Args::parse();
-    let mut my_disk = Disk::new(args.path.as_str(), args.size);
+    let my_disk = Disk::new(args.path.as_str(), args.size);
     my_disk.write();
     my_disk.write_bootcode();
     println!("Create file at: {}", args.path);

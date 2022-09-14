@@ -15,6 +15,7 @@ pub struct Disk {
 
 impl Disk {
     pub fn new(path: &str, size: u64) -> Disk {
+        if size > 528482304 { panic!("Disk too big!"); }
         let sector_size = 512;
         let bootcode = include_bytes!("msdos622-bootcode.bin");
         Disk {
@@ -29,18 +30,15 @@ impl Disk {
     // Bochs geomtry algorithm for the 'no translation' case.
     // Disks that remain within the original int13h limit of 528MB.
     fn geometry_none(size: u64) -> CHS {
-        let sptt: [u64; 3] = [63, 127, 255];
         let sector_count = size / 512;
         let mut geom = CHS::empty();
-
-        for spt in sptt {
-            let heads_range = 1..=15;
-            for hpc in heads_range.rev() {
-                let cylinders = sector_count / (hpc * spt);
-                geom.cylinder = u16::try_from(cylinders).unwrap();
-                geom.head = u8::try_from(hpc).unwrap();
-                geom.sector = u8::try_from(spt).unwrap();
-            }
+        let heads_range = 1..=16;
+        for hpc in heads_range {
+            let cylinders = sector_count / (hpc * 63);
+            geom.cylinder = u16::try_from(cylinders).unwrap();
+            geom.head = u8::try_from(hpc).unwrap();
+            geom.sector = 63;
+            if cylinders < 1023 { break; }
         }
         println!("{:?}", geom);
         return geom;
