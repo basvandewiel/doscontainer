@@ -9,6 +9,7 @@ pub struct Disk {
     geometry: CHS,
     path: PathBuf,
     sector_count: u64,
+    sector_size: u64,
     size: u64,
 }
 
@@ -18,19 +19,34 @@ impl Disk {
         let bootcode = include_bytes!("msdos622-bootcode.bin");
         Disk {
             bootcode: *bootcode,
-            geometry: CHS::empty(),
+            geometry: Disk::geometry_none(size),
             path: PathBuf::from(path),
             sector_count: size / sector_size,
+            sector_size: 512,
             size: size,
         }
     }
     // Bochs geomtry algorithm for the 'no translation' case.
     // Disks that remain within the original int13h limit of 528MB.
-    fn geometry_none(&self) -> CHS {
-        return CHS::empty();
+    fn geometry_none(size: u64) -> CHS {
+        let sptt: [u64; 3] = [63, 127, 255];
+        let sector_count = size / 512;
+        let mut geom = CHS::empty();
+
+        for spt in sptt {
+            let heads_range = 1..=15;
+            for hpc in heads_range.rev() {
+                let cylinders = sector_count / (hpc * spt);
+                geom.cylinder = u16::try_from(cylinders).unwrap();
+                geom.head = u8::try_from(hpc).unwrap();
+                geom.sector = u8::try_from(spt).unwrap();
+            }
+        }
+        println!("{:?}", geom);
+        return geom;
     }
     pub fn write(&self) {
-        let mut f = File::create(self.path.as_path()).expect("Failed to create file.");
+        let f = File::create(self.path.as_path()).expect("Failed to create file.");
         f.set_len(self.size).expect("Failed to grow file to requested size.");
     }
     pub fn write_bootcode(&self) {
