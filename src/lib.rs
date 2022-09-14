@@ -17,11 +17,11 @@ impl Disk {
         let sector_size = 512;
         let bootcode = include_bytes!("msdos622-bootcode.bin");
         Disk {
-            path: PathBuf::from(path),
-            geometry: CHS::empty(),
-            size: size,
-            sector_count: size / sector_size,
             bootcode: *bootcode,
+            geometry: CHS::empty(),
+            path: PathBuf::from(path),
+            sector_count: size / sector_size,
+            size: size,
         }
     }
     // Bochs geomtry algorithm for the 'no translation' case.
