@@ -5,10 +5,11 @@ use std::io::Write;
 
 #[derive(Debug)]
 pub struct Disk {
-    path: PathBuf,
-    size: u64,
-    sector_count: u64,
     bootcode: [u8; 446],
+    geometry: CHS,
+    path: PathBuf,
+    sector_count: u64,
+    size: u64,
 }
 
 impl Disk {
@@ -17,10 +18,16 @@ impl Disk {
         let bootcode = include_bytes!("msdos622-bootcode.bin");
         Disk {
             path: PathBuf::from(path),
+            geometry: CHS::empty(),
             size: size,
             sector_count: size / sector_size,
             bootcode: *bootcode,
         }
+    }
+    // Bochs geomtry algorithm for the 'no translation' case.
+    // Disks that remain within the original int13h limit of 528MB.
+    fn geometry_none(&self) -> CHS {
+        return CHS::empty();
     }
     pub fn write(&self) {
         let mut f = File::create(self.path.as_path()).expect("Failed to create file.");
