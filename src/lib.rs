@@ -56,7 +56,6 @@ impl Disk {
     pub fn write(&self) {
         let f = File::create(self.path.as_path()).expect("Failed to create file.");
         f.set_len(self.size).expect("Failed to grow file to requested size.");
-        self.geometry.as_bytes();
     }
     pub fn write_bootcode(&self) {
         let mut file = OpenOptions::new().write(true).open(&self.path).expect("Failed to open file.");
@@ -97,10 +96,27 @@ impl CHS {
              // Turn the cylinders u16 into a BitVec so we can twiddle bits
              let mut cylinders_as_bits = BitVec::<_, Msb0>::from_element(self.cylinder);
              cylinders_as_bits.drain(0..=5); // Clip off the first 6 unwanted bits
-             let sectors_as_bits = BitVec::<_, Msb0>::from_element(self.sector);
-             println!("Cylinders as bits {:?}", cylinders_as_bits);
-             println!("Sectors as bits {:?}", sectors_as_bits);
-             [0, 0, 0]
+
+             // Turn the sectors u8 into a BitVec so we can twiddle bits
+             let mut sectors_as_bits = BitVec::<_, Msb0>::from_element(self.sector);
+             sectors_as_bits.drain(0..=1); // Clip off the two bytes to make room for the bits of overflow from cylinder
+
+             // Two variables hold the two distinct parts of the cylinders field
+             let cylinders_overflow_bits = &cylinders_as_bits[0..=1];
+             let cylinders_byte = &cylinders_as_bits[1..=8];
+
+             // Compose the sectors field (a byte) from the cylinder overlow bits and the 6 relevant bits from sectors.
+             let mut sectors_byte = bitvec![];
+             sectors_byte.extend_from_bitslice(cylinders_overflow_bits);
+             sectors_byte.extend_from_bitslice(&sectors_as_bits);
+
+             // Convert the twiddled fields back to u8's
+             let sectors_as_u8 = sectors_byte.load_le::<u8>();
+             let cylinders_as_u8 = cylinders_byte.load_le::<u8>();
+
+             // ..and return them as an array.
+             // We don't process the heads field because that's already a byte that doesn't need to be touched.
+             [cylinders_as_u8, self.head, sectors_as_u8]
         }
     }
 }
