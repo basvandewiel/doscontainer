@@ -2,12 +2,15 @@ use std::path::PathBuf;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::io::Seek;
+use std::io::SeekFrom;
 use bitvec::prelude::*;
 
 #[derive(Debug)]
 pub struct Disk {
     bootcode: [u8; 446],
     geometry: CHS,
+    pub partitions: Vec<Partition>,
     path: PathBuf,
     size: u64,
 }
@@ -18,6 +21,7 @@ impl Disk {
         Disk {
             bootcode: *bootcode,
             geometry: Disk::calculate_geometry(size),
+            partitions: Vec::<Partition>::new(),
             path: PathBuf::from(path),
             size: size,
         }
@@ -56,10 +60,27 @@ impl Disk {
     pub fn write(&self) {
         let f = File::create(self.path.as_path()).expect("Failed to create file.");
         f.set_len(self.size).expect("Failed to grow file to requested size.");
+        self.write_bootcode();
+        self.write_partitions();
+        self.write_signature();
     }
     pub fn write_bootcode(&self) {
         let mut file = OpenOptions::new().write(true).open(&self.path).expect("Failed to open file.");
         file.write_all(&self.bootcode).unwrap();
+    }
+    pub fn write_partitions(&self) {
+        for partition in &self.partitions {
+            let mut f = OpenOptions::new().write(true).open(&self.path).expect("Failed to open file.");
+            f.seek(SeekFrom::Start(u64::from(partition.offset))).unwrap();
+            let bytes = partition.as_bytes();
+            f.write_all(&bytes).unwrap();
+        }
+    }
+    pub fn write_signature(&self) {
+         let signature: [u8; 2] = [0x55, 0xAA];
+         let mut f = OpenOptions::new().write(true).open(&self.path).expect("Failed to open file.");
+         f.seek(SeekFrom::Start(0x1FE)).unwrap();
+         f.write_all(&signature).unwrap();
     }
 }
 
@@ -118,5 +139,74 @@ impl CHS {
              // We don't process the heads field because that's already a byte that doesn't need to be touched.
              [cylinders_as_u8, self.head, sectors_as_u8]
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Partition {
+    offset: u16,
+    flag_byte: u8,
+    first_sector: CHS,
+    partition_type: u8,
+    last_sector: CHS,
+    first_lba: u32,
+    sector_count: u32,
+}
+
+impl Partition {
+    pub fn new(partition_number: u8, size: u64) -> Partition {
+        let mut offset = 0x1be;
+        let sector_size = 512;
+        let sector_count: u32 = u32::try_from(size).unwrap() / sector_size;
+        if partition_number > 4 || partition_number == 0 {
+            panic!("Can't have more than 4 partitions, starting at offset 1. You tried to create one at offset {}", partition_number);
+        }
+        if partition_number == 1 {
+            let offset = 0x1be;
+        }
+        if partition_number == 2 {
+            let offset = 0x1ce;
+        }
+        if partition_number == 3 {
+            let offset = 0x1de;
+        }
+        if partition_number == 4 {
+            let offset = 0x1ee;
+        }
+        let sector_one = CHS {
+            cylinder: 1,
+            head: 1,
+            sector: 0,
+        };
+        let sector_two = Disk::calculate_geometry(size-512);
+        return Partition {
+            offset: offset,
+            flag_byte: 0x80,
+            first_sector: sector_one,
+            partition_type: 0x06,
+            last_sector: sector_two,
+            first_lba: 1,
+            sector_count: sector_count - 1,
+        }
+    }
+    pub fn as_bytes(&self) -> Vec::<u8> {
+        let mut bytes = Vec::<u8>::new();
+        let start_chs = self.first_sector.as_bytes();
+        let end_chs = self.last_sector.as_bytes();
+        bytes.push(self.flag_byte);
+        for byte in start_chs {
+            bytes.push(byte);
+        }
+        bytes.push(self.partition_type);
+        for byte in end_chs {
+            bytes.push(byte);
+        }
+        for byte in self.first_lba.to_le_bytes() {
+            bytes.push(byte);
+        }
+        for byte in self.sector_count.to_le_bytes() {
+            bytes.push(byte);
+        }
+        return bytes;
     }
 }

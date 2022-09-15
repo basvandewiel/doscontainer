@@ -1,4 +1,5 @@
 use doscontainer::Disk;
+use doscontainer::Partition;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -14,10 +15,11 @@ struct Args {
 }
 fn main() {
     let args = Args::parse();
-    let my_disk = Disk::new(args.path.as_str(), args.size);
+    let mut my_disk = Disk::new(args.path.as_str(), args.size);
+    // my_disk.write();
+    my_disk.partitions.push(Partition::new(1, args.size));
     my_disk.write();
-    my_disk.write_bootcode();
-    println!("Create file at: {}", args.path);
-    println!("Disk size will be: {} byes.", args.size);
-    println!("{:?}", my_disk);
+    // println!("Create file at: {}", args.path);
+    // println!("Disk size will be: {} byes.", args.size);
+    // println!("{:?}", my_disk);
 }
