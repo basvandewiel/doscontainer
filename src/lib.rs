@@ -73,7 +73,7 @@ impl Disk {
         }
         return geom;
     }
-    fn geometry_large(size: u64) -> CHS {
+    fn geometry_large(_size: u64) -> CHS {
         // Empty placeholder for now so this compiles.
         return CHS::empty();
     }
@@ -175,9 +175,6 @@ impl CHS {
 
         // The sectors number is only 6 bits long, so pad it with zeroes to bring it up to 8 bits.
         let mut chs_sectors: BitVec::<u8, bitvec::order::Msb0> = BitVec::new();
-        for i in [0..1] {
-            chs_sectors.push(false);
-        }
         chs_sectors.extend_from_bitslice(&chs_bits[9..=15]);
 
         // The cylinders value is 10 bits long but a u16 has room for 16, so pad with zeroes.
@@ -213,28 +210,12 @@ pub struct Partition {
 }
 
 impl Partition {
-    pub fn read(partition_number: u8, path: String) {
-        let file_path = PathBuf::from(path);
-        let f = OpenOptions::new().read(true).open(file_path).expect("Failed to open file.");
-    }
     pub fn new(partition_number: u8, start_sector: CHS, size: u64) -> Partition {
-        let mut offset = 0x1be;
+        let offset = 0x1be;
         let sector_size = 512;
         let sector_count: u32 = (u32::try_from(size).unwrap() / sector_size) - 63;
         if partition_number > 4 || partition_number == 0 {
             panic!("Can't have more than 4 partitions, starting at offset 1. You tried to create one at offset {}", partition_number);
-        }
-        if partition_number == 1 {
-            let offset = 0x1be;
-        }
-        if partition_number == 2 {
-            let offset = 0x1ce;
-        }
-        if partition_number == 3 {
-            let offset = 0x1de;
-        }
-        if partition_number == 4 {
-            let offset = 0x1ee;
         }
         let sector_one = start_sector;
         let mut sector_two = Disk::calculate_geometry(size-32256);

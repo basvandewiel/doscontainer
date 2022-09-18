@@ -1,6 +1,5 @@
 use doscontainer::Disk;
 use doscontainer::Partition;
-use doscontainer::CHS;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
