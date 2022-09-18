@@ -1,3 +1,5 @@
+[![<basvandewiel>](https://circleci.com/gh/basvandewiel/doscontainer.svg?style=svg)](https://circleci.com/gh/circleci/circleci-docs)
+
 # DOS Container
 
 Doscontainer is a toolbox that aims to make it easy to mass-generate large numbers of
