@@ -1,5 +1,6 @@
 use doscontainer::Disk;
 use doscontainer::Partition;
+use doscontainer::CHS;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -17,9 +18,12 @@ fn main() {
     let args = Args::parse();
     let mut my_disk = Disk::new(args.path.as_str(), args.size);
     // my_disk.write();
-    my_disk.partitions.push(Partition::new(1, args.size));
+    let start_sector = my_disk.lba_to_chs(63);
+    my_disk.partitions.push(Partition::new(1, start_sector, args.size));
     my_disk.write();
+    let bytes: [u8; 3] = [15, 15, 25];
+    println!("This should reproduce the CHS for the last sector {:?}", CHS::from_bytes(bytes));
     // println!("Create file at: {}", args.path);
     // println!("Disk size will be: {} byes.", args.size);
-    // println!("{:?}", my_disk);
+    println!("{:?}", my_disk);
 }
