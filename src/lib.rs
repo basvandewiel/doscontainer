@@ -123,44 +123,39 @@ impl CHS {
     // Calculate triplet of CHS bytes for use in partition tables
     // https://thestarman.pcministry.com/asm/mbr/PartTables.htm#mbr
     pub fn as_bytes(&self) -> [u8; 3] {
-        // Handle the simple case: values all fit in their own bytes.
-        // if self.cylinder <= 255 {
-        //    return [
-        //        u8::try_from(self.head).unwrap(),
-        //        u8::try_from(self.sector).unwrap(),
-        //        u8::try_from(self.cylinder).unwrap(), ]
-        // }
-        // The cylinders value can go to 1024, which needs 10 bits.
-        // I don't know how to do the bit-twiddling yet to make this
-        // fit across the 3 bytes that the MBR permits for this.
-        // else {
-             // Turn the cylinders u16 into a BitVec so we can twiddle bits
-             let cylinders_as_bits = BitVec::<_, Msb0>::from_element(self.cylinder);
-             let cylinders_clipped = &cylinders_as_bits[6..=15];
+         // Turn the cylinders u16 into a BitVec so we can twiddle bits
+         let cylinders_as_bits = BitVec::<_, Msb0>::from_element(self.cylinder);
+         let cylinders_clipped = &cylinders_as_bits[6..=15];
 
-             // Turn the sectors u8 into a BitVec so we can twiddle bits
-             let sectors_as_bits = BitVec::<_, Msb0>::from_element(self.sector);
-             let sectors_clipped = &sectors_as_bits[0..=5];
+         // Turn the sectors u8 into a BitVec so we can twiddle bits
+         let sectors_as_bits = BitVec::<_, Msb0>::from_element(self.sector);
+         let sectors_clipped = &sectors_as_bits[2..=7];
 
-             let heads_as_bits = BitVec::<_, Msb0>::from_element(self.head);
+         let heads_as_bits = BitVec::<_, Msb0>::from_element(self.head);
 
-             // Two variables hold the two distinct parts of the cylinders field
-             let cylinders_overflow_bits = &cylinders_clipped[0..=1];
-             let cylinders_byte = &cylinders_clipped[0..=7];
+         // Two variables hold the two distinct parts of the cylinders field
+         let cylinders_overflow_bits = &cylinders_clipped[0..=1];
+         let cylinders_byte = &cylinders_clipped[2..=9];
 
-             // Compose the sectors field (a byte) from the cylinder overlow bits and the 6 relevant bits from sectors.
-             let mut sectors_byte: bitvec::vec::BitVec<_, bitvec::order::Msb0> = BitVec::<u8, bitvec::order::Msb0>::new();
-             sectors_byte.extend_from_bitslice(cylinders_overflow_bits);
-             sectors_byte.extend_from_bitslice(sectors_clipped);
+         // Create a sequence of 24 bits to gather all the bits in the right sequence
+         let mut collected_bits: BitVec::<u32, bitvec::order::Msb0> = BitVec::new();
+         collected_bits.extend_from_bitslice(&heads_as_bits);
+         collected_bits.extend_from_bitslice(&cylinders_overflow_bits);
+         collected_bits.extend_from_bitslice(&sectors_clipped);
+         collected_bits.extend_from_bitslice(&cylinders_byte);
 
-             // Convert the twiddled fields back to u8's
-             let heads_as_u8 = heads_as_bits.load_le::<u8>();
-             let sectors_as_u8 = sectors_byte.load_le::<u8>();
-             let cylinders_as_u8 = cylinders_byte.load_le::<u8>();
+         // Compose the sectors field (a byte) from the cylinder overlow bits and the 6 relevant bits from sectors.
+         let mut sectors_byte: bitvec::vec::BitVec<_, bitvec::order::Msb0> = BitVec::<u8, bitvec::order::Msb0>::new();
+         sectors_byte.extend_from_bitslice(cylinders_overflow_bits);
+         sectors_byte.extend_from_bitslice(sectors_clipped);
 
-             // ..and return them as an array.
-             [heads_as_u8, sectors_as_u8, cylinders_as_u8]
-          // }
+         // Convert the twiddled fields back to u8's
+         let heads_as_u8 = heads_as_bits.load_le::<u8>();
+         let sectors_as_u8 = sectors_byte.load_le::<u8>();
+         let cylinders_as_u8 = cylinders_byte.load_le::<u8>();
+
+         // ..and return them as an array.
+         [heads_as_u8, sectors_as_u8, cylinders_as_u8]
     }
     pub fn from_bytes(bytes: [u8; 3]) -> CHS {
         // Turn the bytes into sequences of bits

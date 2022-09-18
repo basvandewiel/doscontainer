@@ -11,6 +11,19 @@ mod tests {
         my_disk.write();
     }
 
+    // Generate the correct set of bytes from a CHS struct
+    #[test]
+    fn chs_to_bytes() {
+        let mut chs = CHS::empty();
+        chs.head = 254;
+        chs.sector = 63;
+        chs.cylinder = 723;
+        let bytes: [u8; 3] = chs.as_bytes();
+        assert_eq!(bytes[0], 0xfe);
+        assert_eq!(bytes[1], 0xbf);
+        assert_eq!(bytes[2], 0xd3);
+    }
+
     // Generate a correct CHS struct from a set of bytes
     #[test]
     fn chs_from_bytes() {
