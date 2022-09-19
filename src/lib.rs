@@ -3,6 +3,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::io::Seek;
+use std::io::prelude::*;
 use std::io::SeekFrom;
 use bitvec::prelude::*;
 
@@ -50,10 +51,24 @@ impl Disk {
 
     // Load a complete Disk structure from an existing file
     pub fn load(path: &str) -> Disk {
-        let f = OpenOptions::new().read(true).open(path).expect("Failed to open disk image.");
+        let mut f = OpenOptions::new().read(true).open(path).expect("Failed to open disk image.");
         let mut loaded_disk = Disk::empty();
-        println!("Loaded disk: {:?}", loaded_disk);
-        loaded_disk
+
+        // Set the path from the loaded file
+        loaded_disk.path = PathBuf::from(path);
+
+        // Set the size from the loaded file
+        loaded_disk.size = u64::try_from(f.metadata().unwrap().len()).expect("Failed to get file size.");
+
+        // Geometry does not get stored in the image file, so calculate it.
+        loaded_disk.geometry = Disk::calculate_geometry(loaded_disk.size);
+
+        // Load existing bootcode from file
+        let mut buffer = [0; 446];
+        f.read_exact(&mut buffer).expect("Failed to read bootcode from file.");
+        loaded_disk.bootcode = buffer;
+
+        return loaded_disk
     }
     pub fn calculate_geometry(size: u64) -> CHS {
         // Small disks use the 'none' algorithm
