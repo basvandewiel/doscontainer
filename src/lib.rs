@@ -3,6 +3,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::io::Seek;
+use std::io::prelude::*;
 use std::io::SeekFrom;
 use bitvec::prelude::*;
 
@@ -18,15 +19,57 @@ pub struct Disk {
 }
 
 impl Disk {
-    pub fn new(path: &str, size: u64) -> Disk {
-        let bootcode = include_bytes!("msdos622-bootcode.bin");
+    pub fn new(path: &str, mut size: u64) -> Disk {
+        size = (size / 512) * 512;
         Disk {
-            bootcode: *bootcode,
+            bootcode: Disk::load_bootcode("DOS622"),
             geometry: Disk::calculate_geometry(size),
             partitions: Vec::<Partition>::new(),
             path: PathBuf::from(path),
-            size: (size / 512) * 512,
+            size: size,
         }
+    }
+    pub fn empty() -> Disk {
+        Disk {
+            bootcode: Disk::load_bootcode("EMPTY"),
+            geometry: CHS::empty(),
+            partitions: Vec::<Partition>::new(),
+            path: PathBuf::from(""),
+            size: 0,
+        }
+    }
+
+    #[allow(unused_assignments)]
+    pub fn load_bootcode(os: &str) -> [u8; 446] {
+        let mut bootcode: &[u8; 446] = &[0; 446];
+        match os {
+              "EMPTY" => return *bootcode,
+              "DOS622" => bootcode = include_bytes!("msdos622-bootcode.bin"),
+              &_ => panic!("Invalid bootcode type requested."),
+        };
+        return *bootcode;
+    }
+
+    // Load a complete Disk structure from an existing file
+    pub fn load(path: &str) -> Disk {
+        let mut f = OpenOptions::new().read(true).open(path).expect("Failed to open disk image.");
+        let mut loaded_disk = Disk::empty();
+
+        // Set the path from the loaded file
+        loaded_disk.path = PathBuf::from(path);
+
+        // Set the size from the loaded file
+        loaded_disk.size = u64::try_from(f.metadata().unwrap().len()).expect("Failed to get file size.");
+
+        // Geometry does not get stored in the image file, so calculate it.
+        loaded_disk.geometry = Disk::calculate_geometry(loaded_disk.size);
+
+        // Load existing bootcode from file
+        let mut buffer = [0; 446];
+        f.read_exact(&mut buffer).expect("Failed to read bootcode from file.");
+        loaded_disk.bootcode = buffer;
+
+        return loaded_disk
     }
     pub fn calculate_geometry(size: u64) -> CHS {
         // Small disks use the 'none' algorithm
@@ -49,7 +92,8 @@ impl Disk {
         chs.sector = u8::try_from((lba % sectors_per_track) + 1).expect("Too many sectors!");
         return chs;
     }
-/*    pub fn chs_to_lba(&self, sector: CHS) -> u32 {
+    #[allow(non_snake_case)]
+    pub fn chs_to_lba(&self, sector: &CHS) -> u32 {
         let C = u32::from(sector.cylinder);
         let TH = u32::from(self.geometry.head);
         let TS = u32::from(self.geometry.sector);
@@ -57,7 +101,7 @@ impl Disk {
         let S = u32::from(sector.sector);
         let lba: u32 = (C * TH * TS) + (H * TS) + (S - 1);
         return lba
-    } */
+    }
     // Bochs geomtry algorithm for the 'no translation' case.
     // Disks that remain within the original int13h limit of 528MB.
     fn geometry_none(size: u64) -> CHS {
@@ -202,33 +246,63 @@ impl CHS {
 pub struct Partition {
     offset: u16,
     flag_byte: u8,
+    first_lba: u32,
     first_sector: CHS,
     partition_type: u8,
     last_sector: CHS,
-    first_lba: u32,
     sector_count: u32,
 }
 
 impl Partition {
-    pub fn new(partition_number: u8, start_sector: CHS, size: u64) -> Partition {
-        let offset = 0x1be;
-        let sector_size = 512;
-        let sector_count: u32 = (u32::try_from(size).unwrap() / sector_size) - 63;
+    pub fn new(disk: &Disk, partition_number: u8, mut start_sector: u32, partsize: u64) -> Partition {
+        let mut size: u32 = u32::try_from(partsize).unwrap();
+
+        // Special case: 0 grows the partition to fill the entire disk
+        if size == 0 {
+            let disk_sectors = disk.size/512;
+            let free_sectors = disk_sectors - 64;
+            size = u32::try_from(free_sectors).unwrap();
+        }
+        // See if we could ever fit at all: panic early if we don't.
+        let max_size: u32 = u32::try_from(disk.size - (63 * 512)).unwrap();
+        if size > max_size {
+            panic!("Requested partition won't fit on your drive.");
+        }
+
+        // MBR layout doesn't support more than 4 primary partitions. Extended partitioning is out of scope (for now).
         if partition_number > 4 || partition_number == 0 {
             panic!("Can't have more than 4 partitions, starting at offset 1. You tried to create one at offset {}", partition_number);
         }
-        let sector_one = start_sector;
-        let mut sector_two = Disk::calculate_geometry(size-32256);
-        sector_two.cylinder -= 1;
-        return Partition {
-            offset: offset,
-            flag_byte: 0x80,
-            first_sector: sector_one,
-            partition_type: 0x06,
-            last_sector: sector_two,
-            first_lba: 63,
-            sector_count: sector_count - 1,
+
+        // Can't have things begin before sector 63. Theoretically, sure, but MS-DOS doesn't do it that way.
+        if start_sector < 63 {
+            start_sector = 63;
         }
+
+        // Check if we can really fit the disk
+        let sector_count = (size - start_sector)/512;
+        let requested_sectors = size / 512;
+        if requested_sectors > sector_count {
+            panic!("The requested partion won't fit on your drive. If possible, have it start in another place on the drive.");
+        }
+        let mut end_chs = disk.lba_to_chs(requested_sectors - start_sector);
+        end_chs.head = 15;
+        end_chs.sector = 63;
+        end_chs.cylinder -=5;
+        let sect_count = disk.chs_to_lba(&end_chs);
+        println!("Requested sectors: {:?}", requested_sectors);
+        let my_partition = Partition {
+            offset: 0x1be,
+            flag_byte: 0x80,
+            first_sector: disk.lba_to_chs(start_sector),
+            partition_type: 0x06,
+            last_sector: end_chs,
+            // last_sector: disk.lba_to_chs(requested_sectors - start_sector),
+            first_lba: start_sector,
+            sector_count: sect_count,
+        };
+        println!("Generated partition: {:?}", my_partition);
+        return my_partition;
     }
     pub fn as_bytes(&self) -> Vec::<u8> {
         let mut bytes = Vec::<u8>::new();
