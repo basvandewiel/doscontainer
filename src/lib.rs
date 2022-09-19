@@ -19,15 +19,34 @@ pub struct Disk {
 
 impl Disk {
     pub fn new(path: &str, size: u64) -> Disk {
-        let bootcode = include_bytes!("msdos622-bootcode.bin");
         Disk {
-            bootcode: *bootcode,
+            bootcode: Disk::load_bootcode("DOS622"),
             geometry: Disk::calculate_geometry(size),
             partitions: Vec::<Partition>::new(),
             path: PathBuf::from(path),
             size: (size / 512) * 512,
         }
     }
+    pub fn empty() -> Disk {
+        Disk {
+            bootcode: Disk::load_bootcode("DOS622"),
+            geometry: CHS::empty(),
+            partitions: Vec::<Partition>::new(),
+            path: PathBuf::from(""),
+            size: 0,
+        }
+    }
+
+    #[allow(unused_assignments)]
+    fn load_bootcode(os: &str) -> [u8; 446] {
+        let mut bootcode: &[u8; 446] = &[0; 446];
+        match os {
+              "DOS622" => bootcode = include_bytes!("msdos622-bootcode.bin"),
+              &_ => panic!("Invalid bootcode type requested."),
+        };
+        return *bootcode;
+    }
+
     pub fn calculate_geometry(size: u64) -> CHS {
         // Small disks use the 'none' algorithm
         if size < 528482304 {
