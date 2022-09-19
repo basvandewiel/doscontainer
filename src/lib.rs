@@ -29,7 +29,7 @@ impl Disk {
     }
     pub fn empty() -> Disk {
         Disk {
-            bootcode: Disk::load_bootcode("DOS622"),
+            bootcode: Disk::load_bootcode("EMPTY"),
             geometry: CHS::empty(),
             partitions: Vec::<Partition>::new(),
             path: PathBuf::from(""),
@@ -38,15 +38,23 @@ impl Disk {
     }
 
     #[allow(unused_assignments)]
-    fn load_bootcode(os: &str) -> [u8; 446] {
+    pub fn load_bootcode(os: &str) -> [u8; 446] {
         let mut bootcode: &[u8; 446] = &[0; 446];
         match os {
+              "EMPTY" => return *bootcode,
               "DOS622" => bootcode = include_bytes!("msdos622-bootcode.bin"),
               &_ => panic!("Invalid bootcode type requested."),
         };
         return *bootcode;
     }
 
+    // Load a complete Disk structure from an existing file
+    pub fn load(path: &str) -> Disk {
+        let f = OpenOptions::new().read(true).open(path).expect("Failed to open disk image.");
+        let mut loaded_disk = Disk::empty();
+        println!("Loaded disk: {:?}", loaded_disk);
+        loaded_disk
+    }
     pub fn calculate_geometry(size: u64) -> CHS {
         // Small disks use the 'none' algorithm
         if size < 528482304 {
