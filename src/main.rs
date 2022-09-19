@@ -1,4 +1,5 @@
 use doscontainer::Disk;
+use doscontainer::Partition;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -14,6 +15,8 @@ struct Args {
 }
 fn main() {
     let args = Args::parse();
-    let my_disk = Disk::load(args.path.as_str());
+    let mut my_disk = Disk::new(args.path.as_str(), args.size);
+    my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 49000000));
+    my_disk.write();
     println!("{:?}", my_disk);
 }
