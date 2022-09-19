@@ -23,10 +23,10 @@ mod tests {
         assert_eq!(my_partition.first_sector.head, 1);
         assert_eq!(my_partition.first_sector.sector, 1);
         assert_eq!(my_partition.partition_type, 6);
-        assert_eq!(my_partition.last_sector.cylinder, 101);
-        assert_eq!(my_partition.last_sector.head, 3);
-        assert_eq!(my_partition.last_sector.sector, 7);
-        assert_eq!(my_partition.sector_count, 48999937);
+        assert_eq!(my_partition.last_sector.cylinder, 96);
+        assert_eq!(my_partition.last_sector.head, 15);
+        assert_eq!(my_partition.last_sector.sector, 63);
+        assert_eq!(my_partition.sector_count, 91727);
     }
 
     // Request an empty bootcode

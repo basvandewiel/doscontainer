@@ -16,7 +16,7 @@ struct Args {
 fn main() {
     let args = Args::parse();
     let mut my_disk = Disk::new(args.path.as_str(), args.size);
-    my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 49000000));
+    my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 50000000-(64*512)));
     my_disk.write();
     println!("{:?}", my_disk);
 }
