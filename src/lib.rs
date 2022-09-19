@@ -3,6 +3,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::io::Seek;
+use std::io::prelude::*;
 use std::io::SeekFrom;
 use bitvec::prelude::*;
 
@@ -19,14 +20,55 @@ pub struct Disk {
 
 impl Disk {
     pub fn new(path: &str, size: u64) -> Disk {
-        let bootcode = include_bytes!("msdos622-bootcode.bin");
         Disk {
-            bootcode: *bootcode,
+            bootcode: Disk::load_bootcode("DOS622"),
             geometry: Disk::calculate_geometry(size),
             partitions: Vec::<Partition>::new(),
             path: PathBuf::from(path),
             size: (size / 512) * 512,
         }
+    }
+    pub fn empty() -> Disk {
+        Disk {
+            bootcode: Disk::load_bootcode("EMPTY"),
+            geometry: CHS::empty(),
+            partitions: Vec::<Partition>::new(),
+            path: PathBuf::from(""),
+            size: 0,
+        }
+    }
+
+    #[allow(unused_assignments)]
+    pub fn load_bootcode(os: &str) -> [u8; 446] {
+        let mut bootcode: &[u8; 446] = &[0; 446];
+        match os {
+              "EMPTY" => return *bootcode,
+              "DOS622" => bootcode = include_bytes!("msdos622-bootcode.bin"),
+              &_ => panic!("Invalid bootcode type requested."),
+        };
+        return *bootcode;
+    }
+
+    // Load a complete Disk structure from an existing file
+    pub fn load(path: &str) -> Disk {
+        let mut f = OpenOptions::new().read(true).open(path).expect("Failed to open disk image.");
+        let mut loaded_disk = Disk::empty();
+
+        // Set the path from the loaded file
+        loaded_disk.path = PathBuf::from(path);
+
+        // Set the size from the loaded file
+        loaded_disk.size = u64::try_from(f.metadata().unwrap().len()).expect("Failed to get file size.");
+
+        // Geometry does not get stored in the image file, so calculate it.
+        loaded_disk.geometry = Disk::calculate_geometry(loaded_disk.size);
+
+        // Load existing bootcode from file
+        let mut buffer = [0; 446];
+        f.read_exact(&mut buffer).expect("Failed to read bootcode from file.");
+        loaded_disk.bootcode = buffer;
+
+        return loaded_disk
     }
     pub fn calculate_geometry(size: u64) -> CHS {
         // Small disks use the 'none' algorithm
