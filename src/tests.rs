@@ -11,6 +11,20 @@ mod tests {
         my_disk.write();
     }
 
+    // Request the MS-DOS 6.22 bootcode
+    #[test]
+    fn request_msdos622_bootcode() {
+        let bootcode: [u8; 446] = Disk::load_bootcode("DOS622");
+        assert_eq!(bootcode.len(), 446);
+    }
+
+    // Request a wrong type of bootcode
+    #[test]
+    #[should_panic]
+    fn request_wrong_bootcode() {
+        Disk::load_bootcode("wrong_file.bin");
+    }
+
     // Generate the correct set of bytes from a CHS struct
     #[test]
     fn chs_to_bytes() {
