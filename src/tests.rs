@@ -7,8 +7,26 @@ mod tests {
     #[test]
     fn disk_geometry() {
         let mut my_disk = Disk::new("test.raw", 5000000);
-        my_disk.partitions.push(Partition::new(1, CHS::from_bytes([0x1f, 0x3f, 0x33]), 5000000));
+        my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 4900000));
         my_disk.write();
+    }
+
+    // Create a partition
+    #[test]
+    fn create_partition() {
+        let my_disk = Disk::new("test.raw", 50000000);
+        let my_partition = Partition::new(&my_disk, 1, 63, 49000000);
+        assert_eq!(my_partition.offset, 446);
+        assert_eq!(my_partition.flag_byte, 128);
+        assert_eq!(my_partition.first_lba, 63);
+        assert_eq!(my_partition.first_sector.cylinder, 0);
+        assert_eq!(my_partition.first_sector.head, 1);
+        assert_eq!(my_partition.first_sector.sector, 1);
+        assert_eq!(my_partition.partition_type, 6);
+        assert_eq!(my_partition.last_sector.cylinder, 101);
+        assert_eq!(my_partition.last_sector.head, 3);
+        assert_eq!(my_partition.last_sector.sector, 7);
+        assert_eq!(my_partition.sector_count, 48999937);
     }
 
     // Request an empty bootcode
