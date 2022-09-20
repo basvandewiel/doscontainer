@@ -158,4 +158,35 @@ mod tests {
         bpb.set_number_of_root_entries(4000);
         assert_eq!(bpb.get_number_of_root_entries(), 512);
     }
+
+    #[test]
+    fn bpb_set_too_few_sectors() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_sector_count(3);
+        assert_eq!(bpb.get_sector_count(), 64);
+    }
+
+    #[test]
+    fn bpb_set_valid_number_of_sectors() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_sector_count(128);
+        assert_eq!(bpb.get_sector_count(), 128);
+    }
+
+    #[test]
+    fn bpb_set_valid_media_descriptor() {
+        let valid_values: [u8; 15] = [0xe5, 0xed, 0xee, 0xef, 0xf0, 0xf4, 0xf5, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff];
+        let mut bpb = BiosParameterBlock::empty();
+        for value in valid_values {
+            bpb.set_media_descriptor(value);
+            assert_eq!(bpb.get_media_descriptor(), value);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn bpb_set_invalid_media_descriptor() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_media_descriptor(0xb3);
+    }
 }

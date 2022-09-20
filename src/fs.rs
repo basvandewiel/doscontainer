@@ -131,5 +131,31 @@ pub mod fs {
         pub fn get_number_of_root_entries(&self) -> u16 {
             return self.number_of_root_entries;
         }
+        
+        pub fn set_sector_count(&mut self, mut sector_count: u16) {
+            // Do something sensible here for a minimum number of sectors.
+            if sector_count < 64 {
+                sector_count = 64;
+            }
+            self.sector_count = sector_count;
+        }
+        
+        pub fn get_sector_count(&self) -> u16 {
+            return self.sector_count;
+        }
+        
+        pub fn set_media_descriptor(&mut self, media_descriptor: u8) {
+            let valid_values = Vec::<u8>::from([0xe5, 0xed, 0xee, 0xef, 0xf0, 0xf4, 0xf5, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff]);
+            if valid_values.contains(&media_descriptor) {
+                self.media_descriptor = media_descriptor;
+            }
+            else {
+                panic!("Invalid media descriptor byte.");
+            }
+        }
+        
+        pub fn get_media_descriptor(&self) -> u8 {
+            return self.media_descriptor;
+        }
     }
 }
