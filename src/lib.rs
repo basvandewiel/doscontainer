@@ -254,19 +254,15 @@ pub struct Partition {
 }
 
 impl Partition {
-    pub fn new(disk: &Disk, partition_number: u8, mut start_sector: u32, partsize: u64) -> Partition {
-        let mut size: u32 = u32::try_from(partsize).unwrap();
+    pub fn new(disk: &Disk, partition_number: u8, mut start_sector: u32, partition_bytes: u64) -> Partition {
+        let sector_size: u32 = 512;
+        let mut requested_sectors: u32 = u32::try_from(partition_bytes).unwrap()/sector_size;
 
         // Special case: 0 grows the partition to fill the entire disk
-        if size == 0 {
-            let disk_sectors = disk.size/512;
+        if requested_sectors == 0 {
+            let disk_sectors = disk.size/u64::from(sector_size);
             let free_sectors = disk_sectors - 64;
-            size = u32::try_from(free_sectors).unwrap();
-        }
-        // See if we could ever fit at all: panic early if we don't.
-        let max_size: u32 = u32::try_from(disk.size - (63 * 512)).unwrap();
-        if size > max_size {
-            panic!("Requested partition won't fit on your drive.");
+            requested_sectors = u32::try_from(free_sectors).unwrap();
         }
 
         // MBR layout doesn't support more than 4 primary partitions. Extended partitioning is out of scope (for now).
@@ -279,29 +275,24 @@ impl Partition {
             start_sector = 63;
         }
 
-        // Check if we can really fit the disk
-        let sector_count = (size - start_sector)/512;
-        let requested_sectors = size / 512;
-        if requested_sectors > sector_count {
-            panic!("The requested partion won't fit on your drive. If possible, have it start in another place on the drive.");
-        }
-        let mut end_chs = disk.lba_to_chs(requested_sectors - start_sector);
+        // Cylinder-align the partition's end. Try to get as close to FDISK.EXE as we can.
+        // Update requested_sectors with the aligned value fom the CHS.
+        let mut end_chs = disk.lba_to_chs(requested_sectors);
         end_chs.head = 15;
         end_chs.sector = 63;
-        end_chs.cylinder -=5;
-        let sect_count = disk.chs_to_lba(&end_chs);
-        println!("Requested sectors: {:?}", requested_sectors);
+        end_chs.cylinder -=2;
+        requested_sectors = disk.chs_to_lba(&end_chs);
+
+        // Compose the Partition struct and return it.
         let my_partition = Partition {
             offset: 0x1be,
             flag_byte: 0x80,
             first_sector: disk.lba_to_chs(start_sector),
             partition_type: 0x06,
             last_sector: end_chs,
-            // last_sector: disk.lba_to_chs(requested_sectors - start_sector),
             first_lba: start_sector,
-            sector_count: sect_count,
+            sector_count: requested_sectors,
         };
-        println!("Generated partition: {:?}", my_partition);
         return my_partition;
     }
     pub fn as_bytes(&self) -> Vec::<u8> {
