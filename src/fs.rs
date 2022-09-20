@@ -52,7 +52,8 @@ pub mod fs {
                 self.sectors_per_cluster = sectors_per_cluster;
             }
             else {
-                panic!("Got an invalid value for sectors per cluster.");
+                // Use the maximum supported by MS-DOS
+                self.sectors_per_cluster = 8;
             }
         }
     }
