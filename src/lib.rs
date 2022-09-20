@@ -8,6 +8,7 @@ use std::io::SeekFrom;
 use bitvec::prelude::*;
 
 mod tests;
+pub mod fs;
 
 #[derive(Debug)]
 pub struct Disk {
