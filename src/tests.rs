@@ -3,6 +3,7 @@ mod tests {
     use crate::Disk;
     use crate::Partition;
     use crate::CHS;
+    use crate::fs::fs::*;
 
     #[test]
     fn disk_geometry() {
@@ -73,5 +74,88 @@ mod tests {
         assert_eq!(chs.head, 254);
         assert_eq!(chs.sector, 63);
         assert_eq!(chs.cylinder, 723);
+    }
+
+    // FS setters
+    #[test]
+    fn bpb_set_too_few_bytes_per_sector() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_bytes_per_sector(12);
+        assert_eq!(bpb.get_bytes_per_sector(), 32);
+    }
+
+    #[test]
+    fn bpb_set_too_many_bytes_per_sector() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_bytes_per_sector(32768);
+        assert_eq!(bpb.get_bytes_per_sector(), 4096);
+    }
+
+    #[test]
+    fn bpb_set_sensible_bytes_per_sector() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_bytes_per_sector(2048);
+        assert_eq!(bpb.get_bytes_per_sector(), 2048);
+    }
+
+    #[test]
+    fn bpb_set_too_few_sectors_per_cluster() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_sectors_per_cluster(0);
+        assert_eq!(bpb.get_sectors_per_cluster(), 8);
+    }
+
+    #[test]
+    fn bpb_set_valid_sectors_per_cluster() {
+        let valid_values: [u8; 8] = [1, 2, 4, 8, 16, 32, 64, 128];
+        let mut bpb = BiosParameterBlock::empty();
+        for value in valid_values {
+            bpb.set_sectors_per_cluster(value);
+            assert_eq!(bpb.get_sectors_per_cluster(), value);
+        }
+    }
+
+    #[test]
+    fn bpb_set_too_many_sectors_per_cluster() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_sectors_per_cluster(255);
+        assert_eq!(bpb.get_sectors_per_cluster(), 8);
+    }
+
+    #[test]
+    fn bpb_set_too_few_reserved_sectors() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_reserved_sectors(0);
+        assert_eq!(bpb.get_reserved_sectors(), 1);
+    }
+
+    #[test]
+    fn bpb_set_valid_reserved_sectors() {
+        let mut bpb = BiosParameterBlock::empty();
+        for value in 1..65535 {
+            bpb.set_reserved_sectors(value);
+            assert_eq!(bpb.get_reserved_sectors(), value);
+        }
+    }
+
+    #[test]
+    fn bpb_set_too_few_root_entries() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_number_of_root_entries(5);
+        assert_eq!(bpb.get_number_of_root_entries(), 16);
+    }
+
+    #[test]
+    fn bpb_set_wrong_number_of_root_entries() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_number_of_root_entries(241);
+        assert_eq!(bpb.get_number_of_root_entries(), 240);
+    }
+
+    #[test]
+    fn bpb_set_too_many_root_entries() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_number_of_root_entries(4000);
+        assert_eq!(bpb.get_number_of_root_entries(), 512);
     }
 }
