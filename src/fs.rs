@@ -7,6 +7,16 @@ pub mod fs {
         bios_parameter_block: BiosParameterBlock,
     }
 
+    impl VBR {
+      pub fn new() -> VBR {
+          VBR {
+              jumpbytes: [0xEB, 0x3C, 0x90], // MS-DOS 6.22 default jumpbytes
+              oem_name: [0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30], // MSDOS5.0
+              bios_parameter_block: BiosParameterBlock::empty(),
+          }
+      }
+    }
+
     /* MS-DOS 4.0+ BIOS Parameter Block (Extended Parameter Block).
      * This derives from the MS-DOS 3.31 BPB with a few added fields.
      */
