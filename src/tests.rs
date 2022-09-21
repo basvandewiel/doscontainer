@@ -189,4 +189,36 @@ mod tests {
         let mut bpb = BiosParameterBlock::empty();
         bpb.set_media_descriptor(0xb3);
     }
+
+    #[test]
+    fn bpb_as_bytes() {
+        let mut bpb = BiosParameterBlock::empty();
+        assert_eq!(bpb.as_bytes()[0], 1);
+    }
+
+    #[test]
+    fn vbr_jumpbytes() {
+        let disk = Disk::new("testdummy", 50000000);
+        let part = Partition::new(&disk, 1, 63, 0);
+        let vbr = VBR::new(part);
+        assert_eq!(vbr.get_jumpbytes(), [0xeb, 0x3c, 0x90]);
+    }
+
+    #[test]
+    fn vbr_oemname() {
+        let disk = Disk::new("testdummy", 50000000);
+        let part = Partition::new(&disk, 1, 63, 0);
+        let vbr = VBR::new(part);
+        assert_eq!(vbr.get_oem_name(), [0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30]);
+    }
+
+    #[test]
+    fn vbr_as_bytes() {
+        let disk = Disk::new("testdummy", 50000000);
+        let part = Partition::new(&disk, 1, 63, 0);
+        let vbr = VBR::new(part);
+        let bytes: Vec::<u8> = [0xEB, 0x3C, 0x90, 0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30, 0x01].to_vec();
+        assert_eq!(vbr.as_bytes(), bytes);
+        
+    }
 }

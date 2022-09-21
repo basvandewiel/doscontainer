@@ -1,4 +1,6 @@
 pub mod fs {
+    use crate::Partition;
+
     // Volume Boot Record: the boot sector placed at the start of a partition
     #[derive(Debug)]
     pub struct VBR {
@@ -8,13 +10,35 @@ pub mod fs {
     }
 
     impl VBR {
-      pub fn new() -> VBR {
-          VBR {
-              jumpbytes: [0xEB, 0x3C, 0x90], // MS-DOS 6.22 default jumpbytes
-              oem_name: [0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30], // MSDOS5.0
-              bios_parameter_block: BiosParameterBlock::empty(),
-          }
-      }
+        pub fn new(partition: Partition) -> VBR {
+            VBR {
+                jumpbytes: [0xEB, 0x3C, 0x90], // MS-DOS 6.22 default jumpbytes
+                oem_name: [0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30], // MSDOS5.0
+                bios_parameter_block: BiosParameterBlock::empty(),
+            }
+        }
+        pub fn as_bytes(&self) -> Vec<u8> {
+            // The bytes vector will contain the entire VBR
+            let mut bytes = Vec::<u8>::new();
+
+            // Push the individual bytes in sequence as specified by the FAT spec
+            for value in self.jumpbytes {
+                bytes.push(value);
+            }
+            for value in self.oem_name {
+                bytes.push(value);
+            }
+            for value in self.bios_parameter_block.as_bytes() {
+                bytes.push(value);
+            }
+            return bytes;
+        }
+        pub fn get_jumpbytes(&self) -> [u8; 3] {
+            return self.jumpbytes;
+        }
+        pub fn get_oem_name(&self) -> [u8; 8] {
+            return self.oem_name;
+        }
     }
 
     /* MS-DOS 4.0+ BIOS Parameter Block (Extended Parameter Block).
@@ -45,11 +69,11 @@ pub mod fs {
         // Generate an empty BPB
         pub fn empty() -> BiosParameterBlock {
             BiosParameterBlock {
-                bytes_per_sector: 0,
+                bytes_per_sector: 512, // For MiSTer this should be hardcoded.
                 sectors_per_cluster: 0,
-                reserved_sectors: 0,
-                number_of_fats: 0,
-                number_of_root_entries: 0,
+                reserved_sectors: 1,
+                number_of_fats: 2,
+                number_of_root_entries: 512,
                 sector_count: 0,
                 media_descriptor: 0,
                 sectors_per_fat: 0,
@@ -63,6 +87,11 @@ pub mod fs {
                 volume_label: [0; 11],
                 filesystem_type: [0; 8],
             }
+        }
+        pub fn as_bytes(&self) -> Vec::<u8> {
+            let mut bytes = Vec::<u8>::new();
+            bytes.push(1u8);
+            return bytes;
         }
         // Setter for input sanitation
         pub fn set_bytes_per_sector(&mut self, mut bytes_per_sector: u16) {
