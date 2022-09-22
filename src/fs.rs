@@ -193,7 +193,8 @@ pub mod fs {
                 self.media_descriptor = media_descriptor;
             }
             else {
-                panic!("Invalid media descriptor byte.");
+                // 0xF8 is the standard value for HDD's
+                self.media_descriptor = 0xF8;
             }
         }
         

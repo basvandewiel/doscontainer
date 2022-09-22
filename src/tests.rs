@@ -184,10 +184,10 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn bpb_set_invalid_media_descriptor() {
         let mut bpb = BiosParameterBlock::empty();
         bpb.set_media_descriptor(0xb3);
+        assert_eq!(bpb.get_media_descriptor(), 0xF8);
     }
 
     #[test]
