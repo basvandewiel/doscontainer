@@ -8,8 +8,15 @@ mod tests {
     #[test]
     fn disk_geometry() {
         let mut my_disk = Disk::new("test.raw", 5000000);
-        my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 4900000));
+        my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 0));
         my_disk.write();
+    }
+
+    #[test]
+    #[should_panic]
+    fn disk_too_big() {
+        let mut my_disk = Disk::new("testdummy", 600000000000);
+        my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 0));
     }
 
     // Create a partition
@@ -246,7 +253,7 @@ mod tests {
 
     #[test]
     fn bpb_calculate_sectors_per_cluster() {
-        for disksize in [600000000, 500000000, 400000000, 300000000, 200000000, 100000000, 50000000, 10000000] {
+        for disksize in [500000000, 400000000, 300000000, 200000000, 100000000, 50000000, 10000000] {
             let disk = Disk::new("testdummy", disksize); 
             let part = Partition::new(&disk, 1, 63, 0);
             let vbr = VBR::new(&part);

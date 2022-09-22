@@ -95,6 +95,19 @@ pub mod fs {
             let mut bpb = BiosParameterBlock::empty();
             bpb.set_bytes_per_sector(512); // Hard-coded default
             bpb.set_sectors_per_cluster(bpb.calculate_sectors_per_cluster(partition));
+            bpb.set_reserved_sectors(1);
+            bpb.set_number_of_fats(2);
+            bpb.set_number_of_root_entries(512);
+            if partition.sector_count < 65536 {
+                bpb.set_sector_count(u16::try_from(partition.sector_count).unwrap());
+                bpb.total_sectors_count = 0; // MS FAT spec page 8
+            }
+            else {
+                bpb.set_sector_count(0);
+                bpb.total_sectors_count = partition.sector_count;
+            }
+            bpb.set_media_descriptor(0xF8);
+            bpb.set_sectors_per_fat(2);
             return bpb;
         }
         pub fn as_bytes(&self) -> Vec::<u8> {
@@ -102,26 +115,33 @@ pub mod fs {
             bytes.push(1u8);
             return bytes;
         }
-        // Follow the table at: https://www.win.tue.nl/~aeb/linux/fs/fat/fat-1.html
+        // Follow the table MS FAT16 spec, page 13, up to 1GB.
         fn calculate_sectors_per_cluster(&self, partition: &Partition) -> u8 {
-            let MB: u32 = 1024*1024; // Define a megabyte
-            let partition_size = (partition.sector_count * 512)/MB; // Partition size in megabytes
+            let megabyte: u32 = 1024*1024; // Define a megabyte
+            let partition_size = (partition.sector_count * 512)/megabyte; // Partition size in megabytes
             if partition_size > 512 {
-                return 16;
+                return 32;
             }
             if partition_size > 256 {
-                return 8;
+                return 16;
             }
             if partition_size > 128 {
-                return 4;
-            }
-            if partition_size > 16 {
                 return 8;
             }
-            // Disk is tiny, should be FAT12, not sure if actually going to do that yet.
+            if partition_size > 16 {
+                return 4;
+            }
             else {
                 return 2;
             }
+        }
+        // Calculate sectors per FAT according to Microsoft spec page 14.
+        // According to Microsoft this algorithm sucks, but it fails in a
+        // safe way and is therefore acceptable. Same old Microsoft, but
+        // since it's impossible to change the past..
+        fn calculate_sectors_per_fat(&self, partition: &Partition) -> u16 {
+            let rootdir_sectors = ((self.number_of_root_entries * 32) + 511) / 512;
+            return 1; // [TODO] Finish this!!
         }
         // Setter for input sanitation
         pub fn set_bytes_per_sector(&mut self, mut bytes_per_sector: u16) {
