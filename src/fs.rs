@@ -43,6 +43,8 @@ pub mod fs {
 
     /* MS-DOS 4.0+ BIOS Parameter Block (Extended Parameter Block).
      * This derives from the MS-DOS 3.31 BPB with a few added fields.
+     * What we're essentially implementing here, is FAT16B.
+     * See: https://en.wikipedia.org/wiki/File_Allocation_Table#FAT16
      */
     #[derive(Debug)]
     pub struct BiosParameterBlock {
@@ -56,8 +58,8 @@ pub mod fs {
         sectors_per_fat: u16,
         disk_sectors_per_track: u16,
         disk_heads: u16,
-        hidden_sectors_count: u16,
-        total_sectors_count: u32, 
+        hidden_sectors_count: u32,
+        total_sectors_count: u32,
         physical_drive_number: u8, // EBPB starts here
         extended_boot_signature: u8,
         volume_id: u32,
@@ -224,6 +226,56 @@ pub mod fs {
         
         pub fn get_media_descriptor(&self) -> u8 {
             return self.media_descriptor;
+        }
+
+        pub fn set_sectors_per_fat(&mut self, sectors_per_fat: u16) {
+            self.sectors_per_fat = sectors_per_fat;
+        }
+
+        pub fn get_sectors_per_fat(&self) -> u16 {
+            return self.sectors_per_fat;
+        }
+
+        pub fn set_disk_sectors_per_track(&mut self, disk_sectors_per_track: u16) {
+            let valid_values = Vec::<u16>::from([63, 127, 255]);
+            if valid_values.contains(&disk_sectors_per_track) {
+                self.disk_sectors_per_track = disk_sectors_per_track;
+            }
+            // Educated guess: if this goes wrong, just use 63 instead of panic
+            else {
+                self.disk_sectors_per_track = 63;
+            }
+        }
+
+        pub fn get_disk_sectors_per_track(&self) -> u16 {
+            return self.disk_sectors_per_track;
+        }
+
+        pub fn set_disk_heads(&mut self, mut disk_heads: u16) {
+            // Avoid division by zero errors in software that doesn't expect a zero here
+            // If your software doesn't use CHS anyway, then this field being 1 should be neutral.
+            if disk_heads == 0 {
+                disk_heads = 1;
+            }
+            // While the variable is a u16, the maximum value is 255
+            if disk_heads > 255 {
+                disk_heads = 255;
+            }
+            self.disk_heads = disk_heads;
+        }
+
+        pub fn get_disk_heads(&self) -> u16 {
+            return self.disk_heads;
+        }
+
+        // Thihs should always be zero unless there's a realistic use case
+        // Still take a parameter so it doesn't confuse consumers of the function.
+        pub fn set_hidden_sectors_count(&mut self, _hidden_sectors_count: u32) {
+            self.hidden_sectors_count = 0;
+        }
+
+        pub fn get_hidden_sectors_count(&self) -> u32 {
+            return self.hidden_sectors_count;
         }
     }
 }

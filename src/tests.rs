@@ -191,6 +191,53 @@ mod tests {
     }
 
     #[test]
+    fn bpb_sectors_per_fat() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_sectors_per_fat(32);
+        assert_eq!(bpb.get_sectors_per_fat(), 32);
+    }
+
+    #[test]
+    fn bpb_set_valid_disk_sectors_per_track() {
+        let mut bpb = BiosParameterBlock::empty();
+        let valid_values: [u16; 3] = [63, 127, 255];
+        for value in valid_values {
+            bpb.set_disk_sectors_per_track(value);
+            assert_eq!(bpb.get_disk_sectors_per_track(), value);
+        }
+    }
+
+    #[test]
+    fn bpb_set_invalid_disk_sectors_per_track() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_disk_sectors_per_track(24);
+        assert_eq!(bpb.get_disk_sectors_per_track(), 63);
+    }
+
+    #[test]
+    fn bpb_set_zero_disk_heads() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_disk_heads(0);
+        assert_eq!(bpb.get_disk_heads(), 1);
+    }
+
+    #[test]
+    fn bpb_set_too_many_disk_heads() {
+        let mut bpb = BiosParameterBlock::empty();
+        bpb.set_disk_heads(600);
+        assert_eq!(bpb.get_disk_heads(), 255);
+    }
+
+    #[test]
+    fn bpb_hidden_sectors_always_zero() {
+        let mut bpb = BiosParameterBlock::empty();
+        // Limit the interval to something comfortably above the max. number of sectors we support anyway.
+        // Running this test for the full scope of a u32 takes unnecessarily long.
+        for value in 0..70000 {
+            bpb.set_hidden_sectors_count(value);
+            assert_eq!(bpb.get_hidden_sectors_count(), 0);
+        }
+
     fn bpb_as_bytes() {
         let mut bpb = BiosParameterBlock::empty();
         assert_eq!(bpb.as_bytes()[0], 1);
