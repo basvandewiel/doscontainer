@@ -39,6 +39,10 @@ pub mod fs {
         pub fn get_oem_name(&self) -> [u8; 8] {
             return self.oem_name;
         }
+        // Return an immutable ref to the BIOS Parameter Block
+        pub fn get_bpb(&self) -> &BiosParameterBlock {
+            return &self.bios_parameter_block;
+        }
     }
 
     /* MS-DOS 4.0+ BIOS Parameter Block (Extended Parameter Block).
@@ -107,7 +111,7 @@ pub mod fs {
                 bpb.total_sectors_count = partition.sector_count;
             }
             bpb.set_media_descriptor(0xF8);
-            bpb.set_sectors_per_fat(2);
+            bpb.set_sectors_per_fat(bpb.calculate_sectors_per_fat(partition));
             return bpb;
         }
         pub fn as_bytes(&self) -> Vec::<u8> {
@@ -138,10 +142,13 @@ pub mod fs {
         // Calculate sectors per FAT according to Microsoft spec page 14.
         // According to Microsoft this algorithm sucks, but it fails in a
         // safe way and is therefore acceptable. Same old Microsoft, but
-        // since it's impossible to change the past..
+        // since it's impossible to change the past.. this is our future.
         fn calculate_sectors_per_fat(&self, partition: &Partition) -> u16 {
             let rootdir_sectors = ((self.number_of_root_entries * 32) + 511) / 512;
-            return 1; // [TODO] Finish this!!
+            let tmpval1: u32 = partition.sector_count - (u32::from(self.get_reserved_sectors()) + u32::from(rootdir_sectors));
+            let tmpval2: u32 = (256 * u32::from(self.get_sectors_per_cluster())) + u32::from(self.get_number_of_fats());
+            let fat_size: u32 = (tmpval1 + (tmpval2 -1)) / tmpval2;
+            return u16::try_from(fat_size).expect("Value too large for FAT16");
         }
         // Setter for input sanitation
         pub fn set_bytes_per_sector(&mut self, mut bytes_per_sector: u16) {

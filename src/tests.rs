@@ -259,12 +259,22 @@ mod tests {
             let vbr = VBR::new(&part);
         }
     }
+    
+    #[test]
+    fn bpb_calculate_sectors_per_fat() {
+        let disk = Disk::new("testdummy", 50000000);
+        let part = Partition::new(&disk, 1, 63, 0);
+        let vbr = VBR::new(&part);
+        let bpb = vbr.get_bpb();
+        assert_eq!(bpb.get_sectors_per_fat(), 94);
+    }
 
     #[test]
     fn vbr_jumpbytes() {
         let disk = Disk::new("testdummy", 50000000);
         let part = Partition::new(&disk, 1, 63, 0);
         let vbr = VBR::new(&part);
+        let bpb = vbr.get_bpb();
         assert_eq!(vbr.get_jumpbytes(), [0xeb, 0x3c, 0x90]);
     }
 
