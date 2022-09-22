@@ -64,11 +64,12 @@ pub mod fs {
         disk_heads: u16,
         hidden_sectors_count: u32,
         total_sectors_count: u32,
+        /* Skip the EPBP for now
         physical_drive_number: u8, // EBPB starts here
-        extended_boot_signature: u8,
+        extended_boot_signature: u16,
         volume_id: u32,
         volume_label: [u8; 11],
-        filesystem_type: [u8; 8],
+        filesystem_type: [u8; 8], */
     }
     
     impl BiosParameterBlock {
@@ -87,11 +88,12 @@ pub mod fs {
                 disk_heads: 0,
                 hidden_sectors_count: 0,
                 total_sectors_count: 0,
-                physical_drive_number: 0,
-                extended_boot_signature: 0,
+                /* Skip the EPBP for now
+                physical_drive_number: 0x80,
+                extended_boot_signature: 0xaa55,
                 volume_id: 0,
                 volume_label: [0; 11],
-                filesystem_type: [0; 8],
+                filesystem_type: [0; 8], */
             }
         }
         pub fn new(partition: &Partition) -> BiosParameterBlock {
@@ -114,9 +116,31 @@ pub mod fs {
             bpb.set_sectors_per_fat(bpb.calculate_sectors_per_fat(partition));
             return bpb;
         }
+        // Serialize into a stream of bytes in the FAT on-disk format
         pub fn as_bytes(&self) -> Vec::<u8> {
             let mut bytes = Vec::<u8>::new();
-            bytes.push(1u8);
+            for byte in self.get_bytes_per_sector().to_le_bytes() {
+                bytes.push(byte);
+            }
+            bytes.push(self.get_sectors_per_cluster());
+            for byte in self.get_reserved_sectors().to_le_bytes() {
+                bytes.push(byte);
+            }
+            bytes.push(self.get_number_of_fats());
+            for byte in self.get_number_of_root_entries().to_le_bytes() {
+                bytes.push(byte);
+            }
+            for byte in self.get_sector_count().to_le_bytes() {
+                bytes.push(byte);
+            }
+            bytes.push(self.get_media_descriptor());
+            for byte in self.get_sectors_per_fat().to_le_bytes() {
+                bytes.push(byte);
+            }
+            // Finish off with zeroes for now.
+            for _counter in 0..11 {
+                bytes.push(0);
+            }
             return bytes;
         }
         // Follow the table MS FAT16 spec, page 13, up to 1GB.

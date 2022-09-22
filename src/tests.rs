@@ -246,9 +246,10 @@ mod tests {
         }
     }
 
+    #[test]
     fn bpb_as_bytes() {
-        let mut bpb = BiosParameterBlock::empty();
-        assert_eq!(bpb.as_bytes()[0], 1);
+        let bpb = BiosParameterBlock::empty();
+        assert_eq!(bpb.as_bytes()[0], 0);
     }
 
     #[test]
@@ -256,7 +257,7 @@ mod tests {
         for disksize in [500000000, 400000000, 300000000, 200000000, 100000000, 50000000, 10000000] {
             let disk = Disk::new("testdummy", disksize); 
             let part = Partition::new(&disk, 1, 63, 0);
-            let vbr = VBR::new(&part);
+            let _vbr = VBR::new(&part);
         }
     }
     
@@ -274,7 +275,6 @@ mod tests {
         let disk = Disk::new("testdummy", 50000000);
         let part = Partition::new(&disk, 1, 63, 0);
         let vbr = VBR::new(&part);
-        let bpb = vbr.get_bpb();
         assert_eq!(vbr.get_jumpbytes(), [0xeb, 0x3c, 0x90]);
     }
 
@@ -291,7 +291,7 @@ mod tests {
         let disk = Disk::new("testdummy", 50000000);
         let part = Partition::new(&disk, 1, 63, 0);
         let vbr = VBR::new(&part);
-        let bytes: Vec::<u8> = [0xEB, 0x3C, 0x90, 0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30, 0x01].to_vec();
+        let bytes: Vec::<u8> = [235, 60, 144, 77, 83, 68, 79, 83, 53, 46, 48, 0, 2, 4, 1, 0, 2, 0, 2, 64, 0, 248, 94, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].to_vec();
         assert_eq!(vbr.as_bytes(), bytes);
     }
 }

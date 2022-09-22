@@ -6,6 +6,7 @@ use std::io::Seek;
 use std::io::prelude::*;
 use std::io::SeekFrom;
 use bitvec::prelude::*;
+use crate::fs::fs::*;
 
 mod tests;
 pub mod fs;
@@ -129,6 +130,11 @@ impl Disk {
         self.write_partitions();
         self.write_signature();
     }
+    pub fn write_bytes(&self, offset: u32, bytes: &Vec::<u8>) {
+        let mut file = OpenOptions::new().write(true).open(&self.path).expect("Failed to open file.");
+        file.seek(SeekFrom::Start(u64::from(offset))).unwrap();
+        file.write_all(&bytes).unwrap();
+    }
     pub fn write_bootcode(&self) {
         let mut file = OpenOptions::new().write(true).open(&self.path).expect("Failed to open file.");
         file.write_all(&self.bootcode).unwrap();
@@ -139,6 +145,7 @@ impl Disk {
             f.seek(SeekFrom::Start(u64::from(partition.offset))).unwrap();
             let bytes = partition.as_bytes();
             f.write_all(&bytes).unwrap();
+            self.write_bytes(partition.first_lba * 512, &partition.vbr.as_ref().unwrap().as_bytes());
         }
     }
     pub fn write_signature(&self) {
@@ -252,6 +259,7 @@ pub struct Partition {
     partition_type: u8,
     last_sector: CHS,
     sector_count: u32,
+    vbr: Option<VBR>,
 }
 
 impl Partition {
@@ -285,7 +293,7 @@ impl Partition {
         requested_sectors = disk.chs_to_lba(&end_chs);
 
         // Compose the Partition struct and return it.
-        let my_partition = Partition {
+        let mut my_partition = Partition {
             offset: 0x1be,
             flag_byte: 0x80,
             first_sector: disk.lba_to_chs(start_sector),
@@ -293,7 +301,12 @@ impl Partition {
             last_sector: end_chs,
             first_lba: start_sector,
             sector_count: requested_sectors,
+            vbr: None,
         };
+
+        let vbr = VBR::new(&my_partition);
+        my_partition.vbr = Some(vbr);
+        
         return my_partition;
     }
     pub fn as_bytes(&self) -> Vec::<u8> {
