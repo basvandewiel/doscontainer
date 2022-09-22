@@ -120,7 +120,6 @@ impl Disk {
     }
     fn geometry_large(_size: u64) -> CHS {
         // Empty placeholder for now so this compiles.
-        panic!("I must not tell lies.");
         return CHS::empty();
     }
     pub fn write(&self) {
