@@ -237,6 +237,7 @@ mod tests {
             bpb.set_hidden_sectors_count(value);
             assert_eq!(bpb.get_hidden_sectors_count(), 0);
         }
+    }
 
     fn bpb_as_bytes() {
         let mut bpb = BiosParameterBlock::empty();
