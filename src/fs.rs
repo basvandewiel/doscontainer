@@ -14,7 +14,7 @@ pub mod fs {
             VBR {
                 jumpbytes: [0xEB, 0x3C, 0x90], // MS-DOS 6.22 default jumpbytes
                 oem_name: [0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30], // MSDOS5.0
-                bios_parameter_block: BiosParameterBlock::empty(),
+                bios_parameter_block: BiosParameterBlock::new(partition),
             }
         }
         pub fn as_bytes(&self) -> Vec<u8> {
@@ -89,13 +89,37 @@ pub mod fs {
             }
         }
         pub fn new(partition: &Partition) -> BiosParameterBlock {
-            // Keep the build happy for now
-            return BiosParameterBlock::empty();
+            // Start with empty, base the other values on the partition we get passed in
+            let mut bpb = BiosParameterBlock::empty();
+            bpb.set_bytes_per_sector(512); // Hard-coded default
+            bpb.set_sectors_per_cluster(bpb.calculate_sectors_per_cluster(partition));
+            return bpb;
         }
         pub fn as_bytes(&self) -> Vec::<u8> {
             let mut bytes = Vec::<u8>::new();
             bytes.push(1u8);
             return bytes;
+        }
+        // Follow the table at: https://www.win.tue.nl/~aeb/linux/fs/fat/fat-1.html
+        fn calculate_sectors_per_cluster(&self, partition: &Partition) -> u8 {
+            let MB: u32 = 1024*1024; // Define a megabyte
+            let partition_size = (partition.sector_count * 512)/MB; // Partition size in megabytes
+            if partition_size > 512 {
+                return 16;
+            }
+            if partition_size > 256 {
+                return 8;
+            }
+            if partition_size > 128 {
+                return 4;
+            }
+            if partition_size > 16 {
+                return 8;
+            }
+            // Disk is tiny, should be FAT12, not sure if actually going to do that yet.
+            else {
+                return 2;
+            }
         }
         // Setter for input sanitation
         pub fn set_bytes_per_sector(&mut self, mut bytes_per_sector: u16) {

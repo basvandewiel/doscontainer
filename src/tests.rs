@@ -197,6 +197,15 @@ mod tests {
     }
 
     #[test]
+    fn bpb_calculate_sectors_per_cluster() {
+        for disksize in [600000000, 500000000, 400000000, 300000000, 200000000, 100000000, 50000000, 10000000] {
+            let disk = Disk::new("testdummy", disksize); 
+            let part = Partition::new(&disk, 1, 63, 0);
+            let vbr = VBR::new(&part);
+        }
+    }
+
+    #[test]
     fn vbr_jumpbytes() {
         let disk = Disk::new("testdummy", 50000000);
         let part = Partition::new(&disk, 1, 63, 0);
@@ -219,6 +228,5 @@ mod tests {
         let vbr = VBR::new(&part);
         let bytes: Vec::<u8> = [0xEB, 0x3C, 0x90, 0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30, 0x01].to_vec();
         assert_eq!(vbr.as_bytes(), bytes);
-        
     }
 }
