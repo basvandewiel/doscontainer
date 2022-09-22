@@ -10,7 +10,7 @@ pub mod fs {
     }
 
     impl VBR {
-        pub fn new(partition: Partition) -> VBR {
+        pub fn new(partition: &Partition) -> VBR {
             VBR {
                 jumpbytes: [0xEB, 0x3C, 0x90], // MS-DOS 6.22 default jumpbytes
                 oem_name: [0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30], // MSDOS5.0
@@ -87,6 +87,10 @@ pub mod fs {
                 volume_label: [0; 11],
                 filesystem_type: [0; 8],
             }
+        }
+        pub fn new(partition: &Partition) -> BiosParameterBlock {
+            // Keep the build happy for now
+            return BiosParameterBlock::empty();
         }
         pub fn as_bytes(&self) -> Vec::<u8> {
             let mut bytes = Vec::<u8>::new();
