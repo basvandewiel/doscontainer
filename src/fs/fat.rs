@@ -1,5 +1,21 @@
 use crate::Partition;
 
+pub enum FatType {
+    Fat12,
+    Fat16,
+}
+
+impl FatType {
+    // Type of FAT depends on the number of clusters in a volume
+    pub fn from_clusters(cluster_count: u32) -> Self {
+        if cluster_count < 4085 {
+            FatType::Fat12
+        } else {
+            FatType::Fat16
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct FAT {
     sectors_per_cluster: u8,
