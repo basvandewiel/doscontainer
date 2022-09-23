@@ -1,4 +1,4 @@
-[![<basvandewiel>](https://circleci.com/gh/basvandewiel/doscontainer.svg?style=svg)](https://app.circleci.com/pipelines/github/basvandewiel/doscontainer)
+[![<basvandewiel>](https://circleci.com/gh/basvandewiel/doscontainer.svg?style=svg)](https://app.circleci.com/pipelines/github/basvandewiel/doscontainer) [![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
 # DOS Container
 
