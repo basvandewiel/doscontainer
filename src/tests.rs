@@ -1,9 +1,10 @@
 #[cfg(test)]
 mod tests {
+    use crate::fs::fat::*;
+    use crate::fs::*;
     use crate::Disk;
     use crate::Partition;
     use crate::CHS;
-    use crate::fs::fs::*;
 
     #[test]
     fn disk_geometry() {
@@ -182,7 +183,10 @@ mod tests {
 
     #[test]
     fn bpb_set_valid_media_descriptor() {
-        let valid_values: [u8; 15] = [0xe5, 0xed, 0xee, 0xef, 0xf0, 0xf4, 0xf5, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff];
+        let valid_values: [u8; 15] = [
+            0xe5, 0xed, 0xee, 0xef, 0xf0, 0xf4, 0xf5, 0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe,
+            0xff,
+        ];
         let mut bpb = BiosParameterBlock::empty();
         for value in valid_values {
             bpb.set_media_descriptor(value);
@@ -254,13 +258,15 @@ mod tests {
 
     #[test]
     fn bpb_calculate_sectors_per_cluster() {
-        for disksize in [500000000, 400000000, 300000000, 200000000, 100000000, 50000000, 10000000] {
-            let disk = Disk::new("testdummy", disksize); 
+        for disksize in [
+            500000000, 400000000, 300000000, 200000000, 100000000, 50000000, 10000000,
+        ] {
+            let disk = Disk::new("testdummy", disksize);
             let part = Partition::new(&disk, 1, 63, 0);
             let _vbr = VBR::new(&part);
         }
     }
-    
+
     #[test]
     fn bpb_calculate_sectors_per_fat() {
         let disk = Disk::new("testdummy", 50000000);
@@ -283,7 +289,10 @@ mod tests {
         let disk = Disk::new("testdummy", 50000000);
         let part = Partition::new(&disk, 1, 63, 0);
         let vbr = VBR::new(&part);
-        assert_eq!(vbr.get_oem_name(), [0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30]);
+        assert_eq!(
+            vbr.get_oem_name(),
+            [0x4D, 0x53, 0x44, 0x4F, 0x53, 0x35, 0x2E, 0x30]
+        );
     }
 
     #[test]
@@ -291,7 +300,19 @@ mod tests {
         let disk = Disk::new("testdummy", 50000000);
         let part = Partition::new(&disk, 1, 63, 0);
         let vbr = VBR::new(&part);
-        let bytes: Vec::<u8> = [235, 60, 144, 77, 83, 68, 79, 83, 53, 46, 48, 0, 2, 4, 1, 0, 2, 0, 2, 64, 0, 248, 94, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0].to_vec();
+        let bytes: Vec<u8> = [
+            235, 60, 144, 77, 83, 68, 79, 83, 53, 46, 48, 0, 2, 4, 1, 0, 2, 0, 2, 64, 0, 248, 94,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]
+        .to_vec();
         assert_eq!(vbr.as_bytes(), bytes);
+    }
+
+    #[test]
+    fn new_fat() {
+        let disk = Disk::new("testdummy", 50000000);
+        let part = Partition::new(&disk, 1, 63, 0);
+        let fat = FAT::new(&part);
+        assert_eq!(fat.get_cluster_count(), 24113);
     }
 }
