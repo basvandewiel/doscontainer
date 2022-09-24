@@ -31,6 +31,12 @@ impl VBR {
         for value in self.bios_parameter_block.as_bytes() {
             bytes.push(value);
         }
+        for _value in 0..490 {
+            bytes.push(0); // Bootcode
+        }
+        bytes[512] = 0x55;
+        bytes[513] = 0xaa;
+        println!("{}", bytes.len());
         return bytes;
     }
     pub fn get_jumpbytes(&self) -> [u8; 3] {
@@ -135,10 +141,6 @@ impl BiosParameterBlock {
         bytes.push(self.get_media_descriptor());
         for byte in self.get_sectors_per_fat().to_le_bytes() {
             bytes.push(byte);
-        }
-        // Finish off with zeroes for now.
-        for _counter in 0..11 {
-            bytes.push(0);
         }
         return bytes;
     }
