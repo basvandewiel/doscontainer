@@ -31,11 +31,11 @@ impl VBR {
         for value in self.bios_parameter_block.as_bytes() {
             bytes.push(value);
         }
-        for _value in 0..490 {
+        for _value in 0..489 {
             bytes.push(0); // Bootcode
         }
-        bytes[512] = 0x55;
-        bytes[513] = 0xaa;
+        bytes[510] = 0x55;
+        bytes[511] = 0xaa;
         println!("{}", bytes.len());
         return bytes;
     }
