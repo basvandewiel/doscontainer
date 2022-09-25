@@ -18,26 +18,27 @@ impl VBR {
         }
     }
     pub fn as_bytes(&self) -> Vec<u8> {
-        // The bytes vector will contain the entire VBR
-        let mut bytes = Vec::<u8>::new();
+        // Follow FreeDOS in how it creates the boot sector
+        let mut sector_buffer: [u8; 512] = [0; 512];
 
         // Push the individual bytes in sequence as specified by the FAT spec
+        let mut index: usize = 0;
         for value in self.jumpbytes {
-            bytes.push(value);
+            sector_buffer[index] = value;
+            index += 1;
         }
         for value in self.oem_name {
-            bytes.push(value);
+            sector_buffer[index] = value;
+            index += 1;
         }
         for value in self.bios_parameter_block.as_bytes() {
-            bytes.push(value);
+            sector_buffer[index] = value;
+            index += 1;
         }
-        for _value in 0..489 {
-            bytes.push(0); // Bootcode
-        }
-        bytes[510] = 0x55;
-        bytes[511] = 0xaa;
-        println!("{}", bytes.len());
-        return bytes;
+        // The last bytes are the signature data
+        sector_buffer[510] = 0x55;
+        sector_buffer[511] = 0xaa;
+        return sector_buffer.to_vec();
     }
     pub fn get_jumpbytes(&self) -> [u8; 3] {
         return self.jumpbytes;
