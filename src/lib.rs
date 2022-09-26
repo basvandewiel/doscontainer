@@ -285,6 +285,7 @@ pub struct Partition {
     partition_type: u8,
     last_sector: CHS,
     sector_count: u32,
+    last_lba: u32,
     vbr: Option<VBR>,
 }
 
@@ -331,6 +332,7 @@ impl Partition {
             partition_type: 0x06,
             last_sector: end_chs,
             first_lba: start_sector,
+            last_lba: requested_sectors - start_sector,
             sector_count: requested_sectors,
             vbr: None,
         };
@@ -339,6 +341,16 @@ impl Partition {
         my_partition.vbr = Some(vbr);
 
         return my_partition;
+    }
+    // The first byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
+    pub fn get_start_offset(&self) -> u64 {
+        let start_offset = self.first_lba * 512;
+        return u64::from(start_offset);
+    }
+    // The last byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
+    pub fn get_end_offset(&self) -> u64 {
+        let end_offset = (self.last_lba * 512) + 512;
+        return u64::from(end_offset);
     }
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::<u8>::new();
