@@ -7,6 +7,7 @@ use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
 use std::path::PathBuf;
+use fatfs::*;
 
 pub mod fs;
 mod tests;
@@ -46,7 +47,7 @@ impl Disk {
         let mut bootcode: &[u8; 446] = &[0; 446];
         match os {
             "EMPTY" => return *bootcode,
-            "DOS622" => bootcode = include_bytes!("msdos622-bootcode.bin"),
+            "DOS622" => bootcode = include_bytes!("os/msdos622-bootcode.bin"),
             &_ => panic!("Invalid bootcode type requested."),
         };
         return *bootcode;
@@ -138,6 +139,30 @@ impl Disk {
         self.write_bootcode();
         self.write_partitions();
         self.write_signature();
+        self.format_partition(&self.partitions[0]);
+        self.write_sys(&self.partitions[0]);
+    }
+    pub fn format_partition(&self, partition: &Partition) {
+        let file = OpenOptions::new().read(true).write(true).open(&self.path).unwrap();
+        let file_part = fscommon::StreamSlice::new(file, partition.get_start_offset(), partition.get_end_offset()).unwrap();
+        fatfs::format_volume(file_part, FormatVolumeOptions::new()).unwrap();
+    }
+    pub fn write_sys(&self, partition: &Partition) {
+       	// Integrate the bytes for MS-DOS system files
+        let io_sys = include_bytes!("os/IO.SYS");
+       	let msdos_sys =	include_bytes!("os/MSDOS.SYS");
+       	let command_com	= include_bytes!("os/COMMAND.COM");
+
+        let file = OpenOptions::new().read(true).write(true).open(&self.path).unwrap();
+        let file_part = fscommon::StreamSlice::new(file, partition.get_start_offset(), partition.get_end_offset()).unwrap();
+        let options = fatfs::FsOptions::new().update_accessed_date(true);
+        let fs = fatfs::FileSystem::new(file_part, options).unwrap();
+        let mut iosys = fs.root_dir().create_file("IO.SYS").unwrap();
+        iosys.write_all(io_sys).unwrap(); 
+        let mut msdossys = fs.root_dir().create_file("MSDOS.SYS").unwrap();
+        msdossys.write_all(msdos_sys).unwrap();
+        let mut commandcom = fs.root_dir().create_file("COMMAND.COM").unwrap();
+        commandcom.write_all(command_com).unwrap();
     }
     pub fn write_bytes(&self, offset: u32, bytes: &Vec<u8>) {
         let mut file = OpenOptions::new()
