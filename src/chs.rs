@@ -56,6 +56,8 @@ impl CHS {
         [heads_as_u8, sectors_as_u8, cylinders_as_u8]
     }
     /// Turn the encoded CHS-value from the bytes in an MBR to a CHS-tuple
+    /// The order of the bytes is identical to the way they are encoded on-disk
+    /// on an old MBR disk. So generally: Heads, Sectors, Cylinders in that order.
     pub fn from_bytes(bytes: [u8; 3]) -> CHS {
         // Turn the bytes into sequences of bits
         let heads_byte = BitVec::<_, Msb0>::from_element(bytes[0]);
