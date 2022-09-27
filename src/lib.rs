@@ -22,6 +22,7 @@ pub struct Disk {
 }
 
 impl Disk {
+    /// Instantiate a new Disk struct at a location (Path) and of a certain size in bytes (Size).
     pub fn new(path: &str, mut size: u64) -> Disk {
         size = (size / 512) * 512;
         Disk {
@@ -32,6 +33,7 @@ impl Disk {
             size: size,
         }
     }
+    /// Instantiate an empty Disk struct
     pub fn empty() -> Disk {
         Disk {
             bootcode: Disk::load_bootcode("EMPTY"),
@@ -42,6 +44,7 @@ impl Disk {
         }
     }
 
+    /// This function loads a specific binary bootcode for use in the Disk struct
     #[allow(unused_assignments)]
     pub fn load_bootcode(os: &str) -> [u8; 446] {
         let mut bootcode: &[u8; 446] = &[0; 446];
@@ -53,7 +56,7 @@ impl Disk {
         return *bootcode;
     }
 
-    // Load a complete Disk structure from an existing file
+    /// Load a complete Disk struct from an existing file
     pub fn load(path: &str) -> Disk {
         let mut f = OpenOptions::new()
             .read(true)
@@ -79,6 +82,8 @@ impl Disk {
 
         return loaded_disk;
     }
+    /// Calculate the CHS geometry for a Disk struct based on its size in bytes.
+    /// The calculation is based on what the Bochs BIOS expects.
     pub fn calculate_geometry(size: u64) -> CHS {
         // Small disks use the 'none' algorithm
         if size < 528482304 {
@@ -90,6 +95,8 @@ impl Disk {
             panic!("No suitable geometry algorithm available. Disk is probably too big.");
         }
     }
+    /// Convert an LBA sector address to a CHS-tuple on a specific disk.
+    /// The disk is needed because the calculation depends on the geometry of the underlying disk.
     pub fn lba_to_chs(&self, lba: u32) -> CHS {
         let mut chs = CHS::empty();
         let sectors_per_track = u32::from(self.geometry.sector);
@@ -101,6 +108,7 @@ impl Disk {
         chs.sector = u8::try_from((lba % sectors_per_track) + 1).expect("Too many sectors!");
         return chs;
     }
+    /// Convert a CHS-tuple to an LBA sector address.
     #[allow(non_snake_case)]
     pub fn chs_to_lba(&self, sector: &CHS) -> u32 {
         let C = u32::from(sector.cylinder);
@@ -111,8 +119,8 @@ impl Disk {
         let lba: u32 = (C * TH * TS) + (H * TS) + (S - 1);
         return lba;
     }
-    // Bochs geomtry algorithm for the 'no translation' case.
-    // Disks that remain within the original int13h limit of 528MB.
+    /// Bochs geomtry algorithm for the 'no translation' case.
+    /// Disks that remain within the original int13h limit of 528MB.
     fn geometry_none(size: u64) -> CHS {
         let sector_count = size / 512;
         let mut geom = CHS::empty();
@@ -128,10 +136,13 @@ impl Disk {
         }
         return geom;
     }
+    /// Geometry calculation for disks larger than the LBA limit.
+    /// [TODO] This still needs a working implementation!
     fn geometry_large(_size: u64) -> CHS {
         // Empty placeholder for now so this compiles.
         return CHS::empty();
     }
+    /// Commit the in-memory Disk struct to persistent storage.
     pub fn write(&self) {
         let f = File::create(self.path.as_path()).expect("Failed to create file.");
         f.set_len(self.size)
@@ -172,6 +183,7 @@ impl Disk {
         file.seek(SeekFrom::Start(u64::from(offset))).unwrap();
         file.write_all(&bytes).unwrap();
     }
+    /// Write bootcode bytes to the MBR
     pub fn write_bootcode(&self) {
         let mut file = OpenOptions::new()
             .write(true)
@@ -179,6 +191,7 @@ impl Disk {
             .expect("Failed to open file.");
         file.write_all(&self.bootcode).unwrap();
     }
+    /// Loop through the Partition structs and commit them to disk.
     pub fn write_partitions(&self) {
         for partition in &self.partitions {
             let mut f = OpenOptions::new()
@@ -195,6 +208,7 @@ impl Disk {
             );
         }
     }
+    /// Write the "magic number" signature bytes to the MBR
     pub fn write_signature(&self) {
         let signature: [u8; 2] = [0x55, 0xAA];
         let mut f = OpenOptions::new()
@@ -206,7 +220,7 @@ impl Disk {
     }
 }
 
-// Custom type for Cylinder/Head/Sector geometry
+/// Custom type for Cylinder/Head/Sector geometry
 #[derive(Debug)]
 pub struct CHS {
     cylinder: u16,
@@ -215,6 +229,7 @@ pub struct CHS {
 }
 
 impl CHS {
+    /// Instantiate an empty CHS tuple
     pub fn empty() -> CHS {
         CHS {
             cylinder: 0,
@@ -222,8 +237,8 @@ impl CHS {
             sector: 0,
         }
     }
-    // Calculate triplet of CHS bytes for use in partition tables
-    // https://thestarman.pcministry.com/asm/mbr/PartTables.htm#mbr
+    /// Calculate triplet of CHS bytes for use in partition tables
+    /// <https://thestarman.pcministry.com/asm/mbr/PartTables.htm#mbr>
     pub fn as_bytes(&self) -> [u8; 3] {
         // Turn the cylinders u16 into a BitVec so we can twiddle bits
         let cylinders_as_bits = BitVec::<_, Msb0>::from_element(self.cylinder);
@@ -260,6 +275,7 @@ impl CHS {
         // ..and return them as an array.
         [heads_as_u8, sectors_as_u8, cylinders_as_u8]
     }
+    /// Turn the encoded CHS-value from the bytes in an MBR to a CHS-tuple
     pub fn from_bytes(bytes: [u8; 3]) -> CHS {
         // Turn the bytes into sequences of bits
         let heads_byte = BitVec::<_, Msb0>::from_element(bytes[0]);
@@ -301,6 +317,7 @@ impl CHS {
     }
 }
 
+/// Custom type for a Partition
 #[derive(Debug)]
 pub struct Partition {
     offset: u16,
@@ -315,6 +332,7 @@ pub struct Partition {
 }
 
 impl Partition {
+    /// Instantiate a new Partition struct on a specific disk.
     pub fn new(
         disk: &Disk,
         partition_number: u8,
@@ -377,6 +395,7 @@ impl Partition {
         let end_offset = (self.last_lba * 512) + 512;
         return u64::from(end_offset);
     }
+    /// Return the bytes to be written to the MBR's partition table.
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::<u8>::new();
         let start_chs = self.first_sector.as_bytes();
