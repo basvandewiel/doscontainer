@@ -1,4 +1,3 @@
-use crate::fs::*;
 use bitvec::prelude::*;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -9,7 +8,6 @@ use std::io::Write;
 use std::path::PathBuf;
 use fatfs::*;
 
-pub mod fs;
 mod tests;
 
 #[derive(Debug)]
@@ -202,10 +200,6 @@ impl Disk {
                 .unwrap();
             let bytes = partition.as_bytes();
             f.write_all(&bytes).unwrap();
-            self.write_bytes(
-                partition.first_lba * 512,
-                &partition.vbr.as_ref().unwrap().as_bytes(),
-            );
         }
     }
     /// Write the "magic number" signature bytes to the MBR
@@ -328,7 +322,6 @@ pub struct Partition {
     last_sector: CHS,
     sector_count: u32,
     last_lba: u32,
-    vbr: Option<VBR>,
 }
 
 impl Partition {
@@ -368,7 +361,7 @@ impl Partition {
         requested_sectors = disk.chs_to_lba(&end_chs);
 
         // Compose the Partition struct and return it.
-        let mut my_partition = Partition {
+        let my_partition = Partition {
             offset: 0x1be,
             flag_byte: 0x80,
             first_sector: disk.lba_to_chs(start_sector),
@@ -377,11 +370,7 @@ impl Partition {
             first_lba: start_sector,
             last_lba: requested_sectors - start_sector,
             sector_count: requested_sectors,
-            vbr: None,
         };
-
-        let vbr = VBR::new(&my_partition);
-        my_partition.vbr = Some(vbr);
 
         return my_partition;
     }
