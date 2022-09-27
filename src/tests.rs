@@ -298,19 +298,6 @@ mod tests {
     }
 
     #[test]
-    fn vbr_as_bytes() {
-        let disk = Disk::new("testdummy", 50000000);
-        let part = Partition::new(&disk, 1, 63, 0);
-        let vbr = VBR::new(&part);
-        let bytes: Vec<u8> = [
-            235, 60, 144, 77, 83, 68, 79, 83, 53, 46, 48, 0, 2, 4, 1, 0, 2, 0, 2, 64, 0, 248, 94,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]
-        .to_vec();
-        assert_eq!(vbr.as_bytes(), bytes);
-    }
-
-    #[test]
     fn new_fat() {
         let disk = Disk::new("testdummy", 50000000);
         let part = Partition::new(&disk, 1, 63, 0);
