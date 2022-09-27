@@ -3,7 +3,7 @@ mod tests {
     use crate::disk::Disk;
     use crate::partition::Partition;
     use crate::chs::CHS;
-
+    
     #[test]
     fn disk_geometry() {
         let mut my_disk = Disk::new("test.raw", 5000000);
