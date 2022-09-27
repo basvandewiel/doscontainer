@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::Disk;
-    use crate::Partition;
-    use crate::CHS;
+    use crate::disk::Disk;
+    use crate::partition::Partition;
+    use crate::chs::CHS;
 
     #[test]
     fn disk_geometry() {

@@ -1,6 +1,4 @@
 use clap::Parser;
-use doscontainer::Disk;
-use doscontainer::Partition;
 
 #[derive(Parser, Debug)]
 #[clap(version, about = "DOS Container generates MS-DOS compatible disk images.", long_about = None)]
@@ -14,9 +12,5 @@ struct Args {
     size: u64,
 }
 fn main() {
-    let args = Args::parse();
-    let mut my_disk = Disk::new(args.path.as_str(), args.size);
-    my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 0));
-    my_disk.write();
-    println!("{:?}", my_disk);
+    println!("Hello world again.");
 }
