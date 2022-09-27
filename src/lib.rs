@@ -1,11 +1,11 @@
-use std::path::PathBuf;
+use bitvec::prelude::*;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::Write;
-use std::io::Seek;
 use std::io::prelude::*;
+use std::io::Seek;
 use std::io::SeekFrom;
-use bitvec::prelude::*;
+use std::io::Write;
+use std::path::PathBuf;
 
 mod tests;
 
@@ -19,6 +19,7 @@ pub struct Disk {
 }
 
 impl Disk {
+    /// Instantiate a new Disk struct at a location (Path) and of a certain size in bytes (Size).
     pub fn new(path: &str, mut size: u64) -> Disk {
         size = (size / 512) * 512;
         Disk {
@@ -29,6 +30,7 @@ impl Disk {
             size: size,
         }
     }
+    /// Instantiate an empty Disk struct
     pub fn empty() -> Disk {
         Disk {
             bootcode: Disk::load_bootcode("EMPTY"),
@@ -39,38 +41,46 @@ impl Disk {
         }
     }
 
+    /// This function loads a specific binary bootcode for use in the Disk struct
     #[allow(unused_assignments)]
     pub fn load_bootcode(os: &str) -> [u8; 446] {
         let mut bootcode: &[u8; 446] = &[0; 446];
         match os {
-              "EMPTY" => return *bootcode,
-              "DOS622" => bootcode = include_bytes!("msdos622-bootcode.bin"),
-              &_ => panic!("Invalid bootcode type requested."),
+            "EMPTY" => return *bootcode,
+            "DOS622" => bootcode = include_bytes!("msdos622-bootcode.bin"),
+            &_ => panic!("Invalid bootcode type requested."),
         };
         return *bootcode;
     }
 
-    // Load a complete Disk structure from an existing file
+    /// Load a complete Disk struct from an existing file
     pub fn load(path: &str) -> Disk {
-        let mut f = OpenOptions::new().read(true).open(path).expect("Failed to open disk image.");
+        let mut f = OpenOptions::new()
+            .read(true)
+            .open(path)
+            .expect("Failed to open disk image.");
         let mut loaded_disk = Disk::empty();
 
         // Set the path from the loaded file
         loaded_disk.path = PathBuf::from(path);
 
         // Set the size from the loaded file
-        loaded_disk.size = u64::try_from(f.metadata().unwrap().len()).expect("Failed to get file size.");
+        loaded_disk.size =
+            u64::try_from(f.metadata().unwrap().len()).expect("Failed to get file size.");
 
         // Geometry does not get stored in the image file, so calculate it.
         loaded_disk.geometry = Disk::calculate_geometry(loaded_disk.size);
 
         // Load existing bootcode from file
         let mut buffer = [0; 446];
-        f.read_exact(&mut buffer).expect("Failed to read bootcode from file.");
+        f.read_exact(&mut buffer)
+            .expect("Failed to read bootcode from file.");
         loaded_disk.bootcode = buffer;
 
-        return loaded_disk
+        return loaded_disk;
     }
+    /// Calculate the CHS geometry for a Disk struct based on its size in bytes.
+    /// The calculation is based on what the Bochs BIOS expects.
     pub fn calculate_geometry(size: u64) -> CHS {
         // Small disks use the 'none' algorithm
         if size < 528482304 {
@@ -78,20 +88,24 @@ impl Disk {
         }
         if size < 4227858432 {
             return Disk::geometry_large(size);
-        }
-        else {
+        } else {
             panic!("No suitable geometry algorithm available. Disk is probably too big.");
         }
     }
+    /// Convert an LBA sector address to a CHS-tuple on a specific disk.
+    /// The disk is needed because the calculation depends on the geometry of the underlying disk.
     pub fn lba_to_chs(&self, lba: u32) -> CHS {
         let mut chs = CHS::empty();
         let sectors_per_track = u32::from(self.geometry.sector);
         let heads_per_cylinder = u32::from(self.geometry.head);
-        chs.cylinder = u16::try_from(lba / (heads_per_cylinder * sectors_per_track)).expect("Too many cylinders!");
-        chs.head = u8::try_from((lba / sectors_per_track) % heads_per_cylinder).expect("Too many heads!");
+        chs.cylinder = u16::try_from(lba / (heads_per_cylinder * sectors_per_track))
+            .expect("Too many cylinders!");
+        chs.head =
+            u8::try_from((lba / sectors_per_track) % heads_per_cylinder).expect("Too many heads!");
         chs.sector = u8::try_from((lba % sectors_per_track) + 1).expect("Too many sectors!");
         return chs;
     }
+    /// Convert a CHS-tuple to an LBA sector address.
     #[allow(non_snake_case)]
     pub fn chs_to_lba(&self, sector: &CHS) -> u32 {
         let C = u32::from(sector.cylinder);
@@ -100,10 +114,10 @@ impl Disk {
         let H = u32::from(sector.head);
         let S = u32::from(sector.sector);
         let lba: u32 = (C * TH * TS) + (H * TS) + (S - 1);
-        return lba
+        return lba;
     }
-    // Bochs geomtry algorithm for the 'no translation' case.
-    // Disks that remain within the original int13h limit of 528MB.
+    /// Bochs geomtry algorithm for the 'no translation' case.
+    /// Disks that remain within the original int13h limit of 528MB.
     fn geometry_none(size: u64) -> CHS {
         let sector_count = size / 512;
         let mut geom = CHS::empty();
@@ -113,42 +127,61 @@ impl Disk {
             geom.cylinder = u16::try_from(cylinders).unwrap();
             geom.head = u8::try_from(hpc).unwrap();
             geom.sector = 63;
-            if cylinders < 1023 { break; }
+            if cylinders < 1023 {
+                break;
+            }
         }
         return geom;
     }
+    /// Geometry calculation for disks larger than the LBA limit.
+    /// [TODO] This still needs a working implementation!
     fn geometry_large(_size: u64) -> CHS {
         // Empty placeholder for now so this compiles.
         return CHS::empty();
     }
+    /// Commit the in-memory Disk struct to persistent storage.
     pub fn write(&self) {
         let f = File::create(self.path.as_path()).expect("Failed to create file.");
-        f.set_len(self.size).expect("Failed to grow file to requested size.");
+        f.set_len(self.size)
+            .expect("Failed to grow file to requested size.");
         self.write_bootcode();
         self.write_partitions();
         self.write_signature();
     }
+    /// Write bootcode bytes to the MBR
     pub fn write_bootcode(&self) {
-        let mut file = OpenOptions::new().write(true).open(&self.path).expect("Failed to open file.");
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open(&self.path)
+            .expect("Failed to open file.");
         file.write_all(&self.bootcode).unwrap();
     }
+    /// Loop through the Partition structs and commit them to disk.
     pub fn write_partitions(&self) {
         for partition in &self.partitions {
-            let mut f = OpenOptions::new().write(true).open(&self.path).expect("Failed to open file.");
-            f.seek(SeekFrom::Start(u64::from(partition.offset))).unwrap();
+            let mut f = OpenOptions::new()
+                .write(true)
+                .open(&self.path)
+                .expect("Failed to open file.");
+            f.seek(SeekFrom::Start(u64::from(partition.offset)))
+                .unwrap();
             let bytes = partition.as_bytes();
             f.write_all(&bytes).unwrap();
         }
     }
+    /// Write the "magic number" signature bytes to the MBR
     pub fn write_signature(&self) {
-         let signature: [u8; 2] = [0x55, 0xAA];
-         let mut f = OpenOptions::new().write(true).open(&self.path).expect("Failed to open file.");
-         f.seek(SeekFrom::Start(0x1FE)).unwrap();
-         f.write_all(&signature).unwrap();
+        let signature: [u8; 2] = [0x55, 0xAA];
+        let mut f = OpenOptions::new()
+            .write(true)
+            .open(&self.path)
+            .expect("Failed to open file.");
+        f.seek(SeekFrom::Start(0x1FE)).unwrap();
+        f.write_all(&signature).unwrap();
     }
 }
 
-// Custom type for Cylinder/Head/Sector geometry
+/// Custom type for Cylinder/Head/Sector geometry
 #[derive(Debug)]
 pub struct CHS {
     cylinder: u16,
@@ -157,50 +190,53 @@ pub struct CHS {
 }
 
 impl CHS {
+    /// Instantiate an empty CHS tuple
     pub fn empty() -> CHS {
         CHS {
             cylinder: 0,
             head: 0,
-            sector: 0
+            sector: 0,
         }
     }
-    // Calculate triplet of CHS bytes for use in partition tables
-    // https://thestarman.pcministry.com/asm/mbr/PartTables.htm#mbr
+    /// Calculate triplet of CHS bytes for use in partition tables
+    /// <https://thestarman.pcministry.com/asm/mbr/PartTables.htm#mbr>
     pub fn as_bytes(&self) -> [u8; 3] {
-         // Turn the cylinders u16 into a BitVec so we can twiddle bits
-         let cylinders_as_bits = BitVec::<_, Msb0>::from_element(self.cylinder);
-         let cylinders_clipped = &cylinders_as_bits[6..=15];
+        // Turn the cylinders u16 into a BitVec so we can twiddle bits
+        let cylinders_as_bits = BitVec::<_, Msb0>::from_element(self.cylinder);
+        let cylinders_clipped = &cylinders_as_bits[6..=15];
 
-         // Turn the sectors u8 into a BitVec so we can twiddle bits
-         let sectors_as_bits = BitVec::<_, Msb0>::from_element(self.sector);
-         let sectors_clipped = &sectors_as_bits[2..=7];
+        // Turn the sectors u8 into a BitVec so we can twiddle bits
+        let sectors_as_bits = BitVec::<_, Msb0>::from_element(self.sector);
+        let sectors_clipped = &sectors_as_bits[2..=7];
 
-         let heads_as_bits = BitVec::<_, Msb0>::from_element(self.head);
+        let heads_as_bits = BitVec::<_, Msb0>::from_element(self.head);
 
-         // Two variables hold the two distinct parts of the cylinders field
-         let cylinders_overflow_bits = &cylinders_clipped[0..=1];
-         let cylinders_byte = &cylinders_clipped[2..=9];
+        // Two variables hold the two distinct parts of the cylinders field
+        let cylinders_overflow_bits = &cylinders_clipped[0..=1];
+        let cylinders_byte = &cylinders_clipped[2..=9];
 
-         // Create a sequence of 24 bits to gather all the bits in the right sequence
-         let mut collected_bits: BitVec::<u32, bitvec::order::Msb0> = BitVec::new();
-         collected_bits.extend_from_bitslice(&heads_as_bits);
-         collected_bits.extend_from_bitslice(&cylinders_overflow_bits);
-         collected_bits.extend_from_bitslice(&sectors_clipped);
-         collected_bits.extend_from_bitslice(&cylinders_byte);
+        // Create a sequence of 24 bits to gather all the bits in the right sequence
+        let mut collected_bits: BitVec<u32, bitvec::order::Msb0> = BitVec::new();
+        collected_bits.extend_from_bitslice(&heads_as_bits);
+        collected_bits.extend_from_bitslice(&cylinders_overflow_bits);
+        collected_bits.extend_from_bitslice(&sectors_clipped);
+        collected_bits.extend_from_bitslice(&cylinders_byte);
 
-         // Compose the sectors field (a byte) from the cylinder overlow bits and the 6 relevant bits from sectors.
-         let mut sectors_byte: bitvec::vec::BitVec<_, bitvec::order::Msb0> = BitVec::<u8, bitvec::order::Msb0>::new();
-         sectors_byte.extend_from_bitslice(cylinders_overflow_bits);
-         sectors_byte.extend_from_bitslice(sectors_clipped);
+        // Compose the sectors field (a byte) from the cylinder overlow bits and the 6 relevant bits from sectors.
+        let mut sectors_byte: bitvec::vec::BitVec<_, bitvec::order::Msb0> =
+            BitVec::<u8, bitvec::order::Msb0>::new();
+        sectors_byte.extend_from_bitslice(cylinders_overflow_bits);
+        sectors_byte.extend_from_bitslice(sectors_clipped);
 
-         // Convert the twiddled fields back to u8's
-         let heads_as_u8 = heads_as_bits.load_le::<u8>();
-         let sectors_as_u8 = sectors_byte.load_le::<u8>();
-         let cylinders_as_u8 = cylinders_byte.load_le::<u8>();
+        // Convert the twiddled fields back to u8's
+        let heads_as_u8 = heads_as_bits.load_le::<u8>();
+        let sectors_as_u8 = sectors_byte.load_le::<u8>();
+        let cylinders_as_u8 = cylinders_byte.load_le::<u8>();
 
-         // ..and return them as an array.
-         [heads_as_u8, sectors_as_u8, cylinders_as_u8]
+        // ..and return them as an array.
+        [heads_as_u8, sectors_as_u8, cylinders_as_u8]
     }
+    /// Turn the encoded CHS-value from the bytes in an MBR to a CHS-tuple
     pub fn from_bytes(bytes: [u8; 3]) -> CHS {
         // Turn the bytes into sequences of bits
         let heads_byte = BitVec::<_, Msb0>::from_element(bytes[0]);
@@ -208,25 +244,25 @@ impl CHS {
         let cylinders_byte = BitVec::<_, Msb0>::from_element(bytes[2]);
 
         // Put all those bits together into a Vec that's 24 bits long
-        let mut chs_bits: BitVec::<u8, bitvec::order::Msb0> = BitVec::new();
+        let mut chs_bits: BitVec<u8, bitvec::order::Msb0> = BitVec::new();
         chs_bits.extend_from_bitslice(&heads_byte);
         chs_bits.extend_from_bitslice(&sectors_byte);
         chs_bits.extend_from_bitslice(&cylinders_byte);
 
         // The heads byte comes over unmodified, it's the first 8 bits of the sequence
-        let mut chs_heads: BitVec::<u8, bitvec::order::Msb0> = BitVec::new();
+        let mut chs_heads: BitVec<u8, bitvec::order::Msb0> = BitVec::new();
         chs_heads.extend_from_bitslice(&chs_bits[0..=7]);
 
         // The sectors number is only 6 bits long, so pad it with zeroes to bring it up to 8 bits.
-        let mut chs_sectors: BitVec::<u8, bitvec::order::Msb0> = BitVec::new();
+        let mut chs_sectors: BitVec<u8, bitvec::order::Msb0> = BitVec::new();
         chs_sectors.extend_from_bitslice(&chs_bits[9..=15]);
 
         // The cylinders value is 10 bits long but a u16 has room for 16, so pad with zeroes.
-        let mut chs_cylinders: BitVec::<u16, bitvec::order::Msb0> = BitVec::new();
+        let mut chs_cylinders: BitVec<u16, bitvec::order::Msb0> = BitVec::new();
         let mut i = 0;
         while i < 6 {
             chs_cylinders.push(false);
-            i +=1;
+            i += 1;
         }
         // Pull in the two overflow bits that were stored in the sectors byte
         chs_cylinders.extend_from_bitslice(&chs_bits[8..=9]);
@@ -242,6 +278,7 @@ impl CHS {
     }
 }
 
+/// Custom type for a Partition
 #[derive(Debug)]
 pub struct Partition {
     offset: u16,
@@ -254,13 +291,19 @@ pub struct Partition {
 }
 
 impl Partition {
-    pub fn new(disk: &Disk, partition_number: u8, mut start_sector: u32, partition_bytes: u64) -> Partition {
+    /// Instantiate a new Partition struct on a specific disk.
+    pub fn new(
+        disk: &Disk,
+        partition_number: u8,
+        mut start_sector: u32,
+        partition_bytes: u64,
+    ) -> Partition {
         let sector_size: u32 = 512;
-        let mut requested_sectors: u32 = u32::try_from(partition_bytes).unwrap()/sector_size;
+        let mut requested_sectors: u32 = u32::try_from(partition_bytes).unwrap() / sector_size;
 
         // Special case: 0 grows the partition to fill the entire disk
         if requested_sectors == 0 {
-            let disk_sectors = disk.size/u64::from(sector_size);
+            let disk_sectors = disk.size / u64::from(sector_size);
             let free_sectors = disk_sectors - 64;
             requested_sectors = u32::try_from(free_sectors).unwrap();
         }
@@ -280,7 +323,7 @@ impl Partition {
         let mut end_chs = disk.lba_to_chs(requested_sectors);
         end_chs.head = 15;
         end_chs.sector = 63;
-        end_chs.cylinder -=2;
+        end_chs.cylinder -= 2;
         requested_sectors = disk.chs_to_lba(&end_chs);
 
         // Compose the Partition struct and return it.
@@ -295,7 +338,8 @@ impl Partition {
         };
         return my_partition;
     }
-    pub fn as_bytes(&self) -> Vec::<u8> {
+    /// Return the bytes to be written to the MBR's partition table.
+    pub fn as_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::<u8>::new();
         let start_chs = self.first_sector.as_bytes();
         let end_chs = self.last_sector.as_bytes();
