@@ -7,7 +7,9 @@ mod tests {
     #[test]
     fn disk_geometry() {
         let mut my_disk = Disk::new("test.raw", 5000000);
-        my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 4900000));
+        my_disk
+            .partitions
+            .push(Partition::new(&my_disk, 1, 63, 4900000));
         my_disk.write();
     }
 
