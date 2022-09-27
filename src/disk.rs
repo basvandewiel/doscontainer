@@ -1,10 +1,10 @@
+use crate::chs::CHS;
+use crate::partition::Partition;
 use fatfs::*;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::*;
 use std::path::PathBuf;
-use crate::partition::Partition;
-use crate::chs::CHS;
 
 #[derive(Debug)]
 pub struct Disk {
@@ -148,22 +148,40 @@ impl Disk {
         self.write_sys(&self.partitions[0]);
     }
     pub fn format_partition(&self, partition: &Partition) {
-        let file = OpenOptions::new().read(true).write(true).open(&self.path).unwrap();
-        let file_part = fscommon::StreamSlice::new(file, partition.get_start_offset(), partition.get_end_offset()).unwrap();
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&self.path)
+            .unwrap();
+        let file_part = fscommon::StreamSlice::new(
+            file,
+            partition.get_start_offset(),
+            partition.get_end_offset(),
+        )
+        .unwrap();
         fatfs::format_volume(file_part, FormatVolumeOptions::new()).unwrap();
     }
     pub fn write_sys(&self, partition: &Partition) {
-       	// Integrate the bytes for MS-DOS system files
+        // Integrate the bytes for MS-DOS system files
         let io_sys = include_bytes!("os/IO.SYS");
-       	let msdos_sys =	include_bytes!("os/MSDOS.SYS");
-       	let command_com	= include_bytes!("os/COMMAND.COM");
+        let msdos_sys = include_bytes!("os/MSDOS.SYS");
+        let command_com = include_bytes!("os/COMMAND.COM");
 
-        let file = OpenOptions::new().read(true).write(true).open(&self.path).unwrap();
-        let file_part = fscommon::StreamSlice::new(file, partition.get_start_offset(), partition.get_end_offset()).unwrap();
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&self.path)
+            .unwrap();
+        let file_part = fscommon::StreamSlice::new(
+            file,
+            partition.get_start_offset(),
+            partition.get_end_offset(),
+        )
+        .unwrap();
         let options = fatfs::FsOptions::new().update_accessed_date(true);
         let fs = fatfs::FileSystem::new(file_part, options).unwrap();
         let mut iosys = fs.root_dir().create_file("IO.SYS").unwrap();
-        iosys.write_all(io_sys).unwrap(); 
+        iosys.write_all(io_sys).unwrap();
         let mut msdossys = fs.root_dir().create_file("MSDOS.SYS").unwrap();
         msdossys.write_all(msdos_sys).unwrap();
         let mut commandcom = fs.root_dir().create_file("COMMAND.COM").unwrap();

@@ -12,5 +12,5 @@ struct Args {
     size: u64,
 }
 fn main() {
-    println!("Hello world again.");
+    let _args = Args::parse();
 }
