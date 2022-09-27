@@ -1,5 +1,5 @@
-use crate::disk::*;
 use crate::chs::*;
+use crate::disk::*;
 
 /// Custom type for a Partition
 #[derive(Debug)]
