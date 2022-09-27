@@ -385,12 +385,13 @@ impl Partition {
 
         return my_partition;
     }
-    // The first byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
+
+    /// The first byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
     pub fn get_start_offset(&self) -> u64 {
         let start_offset = self.first_lba * 512;
         return u64::from(start_offset);
     }
-    // The last byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
+    /// The last byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
     pub fn get_end_offset(&self) -> u64 {
         let end_offset = (self.last_lba * 512) + 512;
         return u64::from(end_offset);
