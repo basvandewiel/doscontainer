@@ -37,7 +37,9 @@ impl Disk {
             size: 0,
         }
     }
-
+    pub fn push_partition(&mut self, partition: Partition) {
+        self.partitions.push(partition);
+    }
     /// This function loads a specific binary bootcode for use in the Disk struct
     #[allow(unused_assignments)]
     pub fn load_bootcode(os: &str) -> [u8; 446] {
