@@ -1,3 +1,4 @@
+use crate::fs::*;
 use bitvec::prelude::*;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -6,7 +7,9 @@ use std::io::Seek;
 use std::io::SeekFrom;
 use std::io::Write;
 use std::path::PathBuf;
+use fatfs::*;
 
+pub mod fs;
 mod tests;
 
 #[derive(Debug)]
@@ -47,7 +50,7 @@ impl Disk {
         let mut bootcode: &[u8; 446] = &[0; 446];
         match os {
             "EMPTY" => return *bootcode,
-            "DOS622" => bootcode = include_bytes!("msdos622-bootcode.bin"),
+            "DOS622" => bootcode = include_bytes!("os/msdos622-bootcode.bin"),
             &_ => panic!("Invalid bootcode type requested."),
         };
         return *bootcode;
@@ -147,6 +150,38 @@ impl Disk {
         self.write_bootcode();
         self.write_partitions();
         self.write_signature();
+        self.format_partition(&self.partitions[0]);
+        self.write_sys(&self.partitions[0]);
+    }
+    pub fn format_partition(&self, partition: &Partition) {
+        let file = OpenOptions::new().read(true).write(true).open(&self.path).unwrap();
+        let file_part = fscommon::StreamSlice::new(file, partition.get_start_offset(), partition.get_end_offset()).unwrap();
+        fatfs::format_volume(file_part, FormatVolumeOptions::new()).unwrap();
+    }
+    pub fn write_sys(&self, partition: &Partition) {
+       	// Integrate the bytes for MS-DOS system files
+        let io_sys = include_bytes!("os/IO.SYS");
+       	let msdos_sys =	include_bytes!("os/MSDOS.SYS");
+       	let command_com	= include_bytes!("os/COMMAND.COM");
+
+        let file = OpenOptions::new().read(true).write(true).open(&self.path).unwrap();
+        let file_part = fscommon::StreamSlice::new(file, partition.get_start_offset(), partition.get_end_offset()).unwrap();
+        let options = fatfs::FsOptions::new().update_accessed_date(true);
+        let fs = fatfs::FileSystem::new(file_part, options).unwrap();
+        let mut iosys = fs.root_dir().create_file("IO.SYS").unwrap();
+        iosys.write_all(io_sys).unwrap(); 
+        let mut msdossys = fs.root_dir().create_file("MSDOS.SYS").unwrap();
+        msdossys.write_all(msdos_sys).unwrap();
+        let mut commandcom = fs.root_dir().create_file("COMMAND.COM").unwrap();
+        commandcom.write_all(command_com).unwrap();
+    }
+    pub fn write_bytes(&self, offset: u32, bytes: &Vec<u8>) {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open(&self.path)
+            .expect("Failed to open file.");
+        file.seek(SeekFrom::Start(u64::from(offset))).unwrap();
+        file.write_all(&bytes).unwrap();
     }
     /// Write bootcode bytes to the MBR
     pub fn write_bootcode(&self) {
@@ -167,6 +202,10 @@ impl Disk {
                 .unwrap();
             let bytes = partition.as_bytes();
             f.write_all(&bytes).unwrap();
+            self.write_bytes(
+                partition.first_lba * 512,
+                &partition.vbr.as_ref().unwrap().as_bytes(),
+            );
         }
     }
     /// Write the "magic number" signature bytes to the MBR
@@ -288,6 +327,8 @@ pub struct Partition {
     partition_type: u8,
     last_sector: CHS,
     sector_count: u32,
+    last_lba: u32,
+    vbr: Option<VBR>,
 }
 
 impl Partition {
@@ -327,16 +368,33 @@ impl Partition {
         requested_sectors = disk.chs_to_lba(&end_chs);
 
         // Compose the Partition struct and return it.
-        let my_partition = Partition {
+        let mut my_partition = Partition {
             offset: 0x1be,
             flag_byte: 0x80,
             first_sector: disk.lba_to_chs(start_sector),
             partition_type: 0x06,
             last_sector: end_chs,
             first_lba: start_sector,
+            last_lba: requested_sectors - start_sector,
             sector_count: requested_sectors,
+            vbr: None,
         };
+
+        let vbr = VBR::new(&my_partition);
+        my_partition.vbr = Some(vbr);
+
         return my_partition;
+    }
+
+    /// The first byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
+    pub fn get_start_offset(&self) -> u64 {
+        let start_offset = self.first_lba * 512;
+        return u64::from(start_offset);
+    }
+    /// The last byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
+    pub fn get_end_offset(&self) -> u64 {
+        let end_offset = (self.last_lba * 512) + 512;
+        return u64::from(end_offset);
     }
     /// Return the bytes to be written to the MBR's partition table.
     pub fn as_bytes(&self) -> Vec<u8> {

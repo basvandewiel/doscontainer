@@ -1,6 +1,6 @@
+use clap::Parser;
 use doscontainer::Disk;
 use doscontainer::Partition;
-use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[clap(version, about = "DOS Container generates MS-DOS compatible disk images.", long_about = None)]
