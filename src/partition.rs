@@ -72,7 +72,7 @@ impl Partition {
     }
     /// The last byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
     pub fn get_end_offset(&self) -> u64 {
-        let end_offset = (self.last_lba * 512) + 512;
+        let end_offset = self.last_lba * 512;
         return u64::from(end_offset);
     }
     /// Return the bytes to be written to the MBR's partition table.
