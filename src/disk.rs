@@ -1,4 +1,5 @@
 use crate::chs::CHS;
+use crate::fs::VBR;
 use crate::partition::Partition;
 use fatfs::*;
 use std::fs::File;
@@ -148,6 +149,7 @@ impl Disk {
         self.write_signature();
         self.format_partition(&self.partitions[0]);
         self.write_sys(&self.partitions[0]);
+        self.write_volume_bootcode();
     }
     pub fn format_partition(&self, partition: &Partition) {
         let file = OpenOptions::new()
@@ -168,6 +170,7 @@ impl Disk {
         let io_sys = include_bytes!("os/IO.SYS");
         let msdos_sys = include_bytes!("os/MSDOS.SYS");
         let command_com = include_bytes!("os/COMMAND.COM");
+        let drvspace_bin = include_bytes!("os/DRVSPACE.BIN");
 
         let file = OpenOptions::new()
             .read(true)
@@ -188,6 +191,8 @@ impl Disk {
         msdossys.write_all(msdos_sys).unwrap();
         let mut commandcom = fs.root_dir().create_file("COMMAND.COM").unwrap();
         commandcom.write_all(command_com).unwrap();
+        let mut drvspacebin = fs.root_dir().create_file("DRVSPACE.BIN").unwrap();
+        drvspacebin.write_all(drvspace_bin).unwrap();
     }
     pub fn write_bytes(&self, offset: u32, bytes: &Vec<u8>) {
         let mut file = OpenOptions::new()
@@ -227,5 +232,16 @@ impl Disk {
             .expect("Failed to open file.");
         f.seek(SeekFrom::Start(0x1FE)).unwrap();
         f.write_all(&signature).unwrap();
+    }
+    //// Temporary function to test writing the VBR bootocde
+    pub fn write_volume_bootcode(&self) {
+        let vbr = VBR::new(23344);
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open(&self.path)
+            .expect("Failed to open file");
+        file.seek(SeekFrom::Start(32315)).unwrap();
+        let bytes = vbr.get_bootcode();
+        file.write_all(&bytes).unwrap();
     }
 }
