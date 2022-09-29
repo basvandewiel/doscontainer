@@ -234,12 +234,19 @@ impl Disk {
         f.write_all(&signature).unwrap();
     }
     /// Temporary function to test writing the VBR bootocde
+    /// This mess now nukes the VBR that fatfs writes, then layers
+    /// the MS-DOS 6.22 bootcode on top of that. The only reason this
+    /// is in here now, is to test if we can get to a working situation.
+    /// Once it works, decompose the code to its rightful place.
     pub fn write_volume_bootcode(&self) {
         let vbr = VBR::new(23344);
         let mut file = OpenOptions::new()
             .write(true)
             .open(&self.path)
             .expect("Failed to open file");
+        file.seek(SeekFrom::Start(0)).unwrap();
+        let bytes = vbr.as_bytes();
+        file.write_all(&bytes).unwrap();
         file.seek(SeekFrom::Start(32315)).unwrap();
         let bytes = vbr.get_bootcode();
         file.write_all(&bytes).unwrap();
