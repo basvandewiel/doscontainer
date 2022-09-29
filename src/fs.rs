@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct VBR {
     jump_bytes: [u8; 3],
     oem_name: [u8; 8],
@@ -12,6 +13,13 @@ pub struct VBR {
     heads_count: u16,
     hidden_sectors_count: u16,
     volume_boot_code: Vec<u8>,
+    volume_sectors_count: u16,
+    volume_sectors_count32: u32,
+    drive_number: u8,
+    extended_boot_signature: u8,
+    volume_serial: u32,
+    volume_label: [u8; 11],
+    filesystem_type: [u8; 8],
 }
 
 impl VBR {
@@ -31,13 +39,70 @@ impl VBR {
             heads_count: 16,        // Read from an MS-DOS VBR
             hidden_sectors_count: 63, // Read from an MS-DOS VBR
             volume_boot_code: include_bytes!("os/msdos622-vbr-bootcode.bin").to_vec(),
+            volume_sectors_count: u16::try_from(volume_sector_count)
+                .expect("Disk too large, too many sectors."),
+            volume_sectors_count32: 0,
+            drive_number: 0x80,
+            extended_boot_signature: 0x29,
+            volume_serial: 1664469745,
+            volume_label: *b"DOSCNTNR   ",
+            filesystem_type: *b"FAT16   ",
         }
     }
 
     /// Serialize a Volume Boot Record struct into
-    /// a sequence of bytes suitable for the on-disk format
+    /// a sequence of bytes suitable for the on-disk format.
+    /// This follows the Microsoft spec from pages 7 onward.
     pub fn as_bytes(&self) -> Vec<u8> {
-        let bytes = Vec::<u8>::new();
+        let mut bytes = Vec::<u8>::new();
+        for byte in self.jump_bytes {
+            bytes.push(byte);
+        }
+        for byte in self.oem_name {
+            bytes.push(byte);
+        }
+        for byte in self.bytes_per_sector.to_le_bytes() {
+            bytes.push(byte);
+        }
+        bytes.push(self.sectors_per_cluster);
+        for byte in self.reserved_sectors_count.to_le_bytes() {
+            bytes.push(byte);
+        }
+        bytes.push(self.fats_count);
+        for byte in self.root_dir_entries_count.to_le_bytes() {
+            bytes.push(byte);
+        }
+        for byte in self.volume_sectors_count.to_le_bytes() {
+            bytes.push(byte);
+        }
+        bytes.push(self.media_descriptor);
+        for byte in self.sectors_per_fat.to_le_bytes() {
+            bytes.push(byte);
+        }
+        for byte in self.sectors_per_track.to_le_bytes() {
+            bytes.push(byte);
+        }
+        for byte in self.heads_count.to_le_bytes() {
+            bytes.push(byte);
+        }
+        for byte in self.hidden_sectors_count.to_le_bytes() {
+            bytes.push(byte);
+        }
+        for byte in self.volume_sectors_count32.to_le_bytes() {
+            bytes.push(byte);
+        }
+        bytes.push(self.drive_number);
+        bytes.push(0); // Reserved position should be 0 according to page 10
+        bytes.push(self.extended_boot_signature);
+        for byte in self.volume_serial.to_le_bytes() {
+            bytes.push(byte);
+        }
+        for byte in self.volume_label {
+            bytes.push(byte);
+        }
+        for byte in self.filesystem_type {
+            bytes.push(byte);
+        }
         return bytes;
     }
 
