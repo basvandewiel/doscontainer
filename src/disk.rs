@@ -233,7 +233,7 @@ impl Disk {
         f.seek(SeekFrom::Start(0x1FE)).unwrap();
         f.write_all(&signature).unwrap();
     }
-    //// Temporary function to test writing the VBR bootocde
+    /// Temporary function to test writing the VBR bootocde
     pub fn write_volume_bootcode(&self) {
         let vbr = VBR::new(23344);
         let mut file = OpenOptions::new()
