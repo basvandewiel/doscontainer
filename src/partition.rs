@@ -1,5 +1,6 @@
 use crate::chs::*;
 use crate::disk::*;
+use crate::fs::VBR;
 
 /// Custom type for a Partition
 #[derive(Debug)]
@@ -12,6 +13,7 @@ pub struct Partition {
     pub(crate) last_sector: CHS,
     pub(crate) sector_count: u32,
     pub(crate) last_lba: u32,
+    pub(crate) boot_record: VBR,
 }
 
 impl Partition {
@@ -60,6 +62,7 @@ impl Partition {
             first_lba: start_sector,
             last_lba: requested_sectors - start_sector,
             sector_count: requested_sectors,
+            boot_record: VBR::new(requested_sectors),
         };
 
         return my_partition;
