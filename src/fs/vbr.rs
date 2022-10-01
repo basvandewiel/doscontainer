@@ -1,5 +1,5 @@
 #[derive(Debug)]
-pub struct VBR {
+pub(crate) struct VBR {
     jump_bytes: [u8; 3],
     oem_name: [u8; 8],
     bytes_per_sector: u16,
@@ -11,7 +11,7 @@ pub struct VBR {
     media_descriptor: u8,
     sectors_per_track: u16,
     heads_count: u16,
-    hidden_sectors_count: u16,
+    hidden_sectors_count: u32,
     volume_boot_code: Vec<u8>,
     volume_sectors_count: u16,
     volume_sectors_count32: u32,
@@ -19,12 +19,12 @@ pub struct VBR {
     extended_boot_signature: u8,
     volume_serial: u32,
     volume_label: [u8; 11],
-    filesystem_type: [u8; 8],
+    filesystem_type: [u8; 7],
 }
 
 impl VBR {
     /// Instantiate a new Volume Boot Record struct.
-    pub fn new(volume_sector_count: u32) -> Self {
+    pub(crate) fn new(volume_sector_count: u32) -> Self {
         VBR {
             jump_bytes: VBR::default_jump_bytes(),
             oem_name: VBR::default_oem_name(),
@@ -38,22 +38,36 @@ impl VBR {
             sectors_per_track: 63,  // Read from an MS-DOS VBR
             heads_count: 16,        // Read from an MS-DOS VBR
             hidden_sectors_count: 63, // Read from an MS-DOS VBR
-            volume_boot_code: include_bytes!("os/msdos622-vbr-bootcode.bin").to_vec(),
-            volume_sectors_count: u16::try_from(volume_sector_count)
-                .expect("Disk too large, too many sectors."),
-            volume_sectors_count32: 0,
+            volume_boot_code: include_bytes!("../os/msdos622-vbr-bootcode.bin").to_vec(),
+            volume_sectors_count: VBR::set_sectors_count16(volume_sector_count),
+            volume_sectors_count32: VBR::set_sectors_count32(volume_sector_count),
             drive_number: 0x80,
             extended_boot_signature: 0x29,
             volume_serial: 1664469745,
             volume_label: *b"DOSCNTNR   ",
-            filesystem_type: *b"FAT16   ",
+            filesystem_type: *b"FAT16  ",
+        }
+    }
+
+    fn set_sectors_count16(volume_sector_count: u32) -> u16 {
+        if volume_sector_count < 65536 {
+            return u16::try_from(volume_sector_count).unwrap();
+        } else {
+            return 0;
+        }
+    }
+    fn set_sectors_count32(volume_sector_count: u32) -> u32 {
+        if volume_sector_count > 65535 {
+            return volume_sector_count;
+        } else {
+            return 0;
         }
     }
 
     /// Serialize a Volume Boot Record struct into
     /// a sequence of bytes suitable for the on-disk format.
     /// This follows the Microsoft spec from pages 7 onward.
-    pub fn as_bytes(&self) -> Vec<u8> {
+    pub(crate) fn as_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::<u8>::new();
         for byte in self.jump_bytes {
             bytes.push(byte);
@@ -103,6 +117,9 @@ impl VBR {
         for byte in self.filesystem_type {
             bytes.push(byte);
         }
+        for byte in self.get_bootcode() {
+            bytes.push(*byte);
+        }
         return bytes;
     }
 
@@ -118,7 +135,7 @@ impl VBR {
     /// is a NOP. The value depends on the operating system. This
     /// function returns the default for MS-DOS 6.x for now.
     fn default_jump_bytes() -> [u8; 3] {
-        return [0xEB, 0x3C, 0x90];
+        return [0xEB, 0x3c, 0x90];
     }
 
     /// MS-DOS 6.x interestingly uses MSDOS5.0 as the OEM name.
@@ -130,7 +147,7 @@ impl VBR {
     /// see page 13 of the official FAT32 Spec for the values used in FAT16.
     /// This is a non-zero power of 2 that must fit within a single byte.
     /// The number depends on the size of the partition in sectors.
-    fn set_sectors_per_cluster(volume_sector_count: u32) -> u8 {
+    pub(crate) fn set_sectors_per_cluster(volume_sector_count: u32) -> u8 {
         if volume_sector_count < 8400 {
             panic!("Less than 8400 sectors is an error condition for FAT16");
         } else if volume_sector_count < 32680 {
@@ -155,7 +172,7 @@ impl VBR {
     /// fundamentally flawed but it's what MS apparently used in their OS'es
     /// so for accuracy we replicate it here. Pass in the partition as a reference
     /// so we can calculate the values instead of depending on a populated &self.
-    fn set_sectors_per_fat(volume_sector_count: u32) -> u16 {
+    pub(crate) fn set_sectors_per_fat(volume_sector_count: u32) -> u16 {
         let root_dir_sectors = ((512 * 32) + (512 - 1)) / 512;
         let tmpval1 = volume_sector_count - (1 + root_dir_sectors);
         let tmpval2: u32 = (256 * u32::from(VBR::set_sectors_per_cluster(volume_sector_count))) + 2;

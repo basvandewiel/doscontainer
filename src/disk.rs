@@ -1,5 +1,5 @@
 use crate::chs::CHS;
-use crate::fs::VBR;
+use crate::fs::vbr::VBR;
 use crate::partition::Partition;
 use fatfs::*;
 use std::fs::File;
@@ -147,9 +147,10 @@ impl Disk {
         self.write_bootcode();
         self.write_partitions();
         self.write_signature();
-        self.format_partition(&self.partitions[0]);
-        self.write_sys(&self.partitions[0]);
-        self.write_volume_bootcode();
+        //self.write_volume_bootcode();
+        //self.format_partition(&self.partitions[0]);
+        //self.write_sys(&self.partitions[0]);
+        // self.write_volume_bootcode();
     }
     pub fn format_partition(&self, partition: &Partition) {
         let file = OpenOptions::new()
@@ -244,11 +245,11 @@ impl Disk {
             .write(true)
             .open(&self.path)
             .expect("Failed to open file");
-        file.seek(SeekFrom::Start(0)).unwrap();
+        file.seek(SeekFrom::Start(63*512)).unwrap();
         let bytes = vbr.as_bytes();
         file.write_all(&bytes).unwrap();
-        file.seek(SeekFrom::Start(32315)).unwrap();
-        let bytes = vbr.get_bootcode();
-        file.write_all(&bytes).unwrap();
+        // file.seek(SeekFrom::Start(32317)).unwrap();
+        // let bytes = vbr.get_bootcode();
+        // file.write_all(&bytes).unwrap();
     }
 }
