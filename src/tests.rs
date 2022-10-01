@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::Disk;
-    use crate::Partition;
-    use crate::CHS;
+    use crate::chs::CHS;
+    use crate::disk::Disk;
+    use crate::partition::Partition;
 
     #[test]
     fn disk_geometry() {
@@ -11,6 +11,13 @@ mod tests {
             .partitions
             .push(Partition::new(&my_disk, 1, 63, 4900000));
         my_disk.write();
+    }
+
+    #[test]
+    #[should_panic]
+    fn disk_too_big() {
+        let mut my_disk = Disk::new("testdummy", 600000000000);
+        my_disk.partitions.push(Partition::new(&my_disk, 1, 63, 0));
     }
 
     // Create a partition
