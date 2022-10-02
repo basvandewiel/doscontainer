@@ -1,5 +1,6 @@
 use crate::fs::vbr::VBR;
 use bitvec::prelude::*;
+use num::integer;
 
 mod tests;
 pub mod vbr;
@@ -9,6 +10,7 @@ pub struct FAT {
     files: Vec<File>,
     sector_count: u32,
     sectors_per_fat: u32,
+    clusters: Vec<u16>,
     cluster_count: u32,
     cluster_size: u32,
 }
@@ -56,16 +58,29 @@ impl FileAttributes {
 
 #[derive(Debug)]
 pub struct File {
-    name: [u8; 8],
-    extension: [u8; 3],
+    name: String,
     data: Vec<u8>,
+    clusters: Vec<u16>,
     attributes: FileAttributes,
 }
 
 impl File {
+    pub fn new(name: String, data: Vec<u8>) -> Self {
+        File {
+            name: name,
+            data: data,
+            clusters: Vec::<u16>::new(),
+            attributes: FileAttributes::default(),
+        }
+    }
+    pub fn get_size(&self) -> u32 {
+        return u32::try_from(self.data.len()).unwrap();
+    }
     /// Validate the requested file name according to the
     /// rules as determined by Microsoft in their spec document
     /// on page 24.
+    /// [TODO] Use a proper Result<E, T> and expand so this function
+    /// doesn't just validate but can serve to normalize a filename.
     fn validate_name(name: &str) -> bool {
         // Name must not be longer than 11 characters
         if name.len() > 11 {
@@ -104,6 +119,7 @@ impl FAT {
         FAT {
             files: Vec::<File>::new(),
             sector_count: u32::from(VBR::set_sectors_per_fat(sector_count)),
+            clusters: Vec::<u16>::new(),
             cluster_count: sector_count / u32::from(VBR::set_sectors_per_cluster(sector_count)),
             cluster_size: u32::from(u32::from(VBR::set_sectors_per_cluster(sector_count)) * 512),
             sectors_per_fat: 46,
@@ -111,6 +127,22 @@ impl FAT {
     }
 
     pub fn add_file(file: File) {}
-}
 
-impl File {}
+    /// Return a list of free clusters for use by the given File
+    /// We're regenerating the whole disk with every write, so we always get
+    /// perfect defragmentation and race conditions don't exit.
+    pub fn find_free_clusters(&self, file: &File) -> Vec<u16> {
+        let filesize: u32 = file.get_size(); // Size of file in bytes
+        let mut required_clusters = 0u32;
+        if filesize < self.cluster_size {
+            required_clusters = 1;
+        } else {
+            required_clusters = num::integer::div_ceil(filesize, self.cluster_size);
+        }
+        let mut free_clusters = Vec::<u16>::new();
+        for count in 0..required_clusters {
+            free_clusters.push(count as u16);
+        }
+        free_clusters
+    }
+}
