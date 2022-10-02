@@ -14,7 +14,7 @@ pub struct FAT {
     cluster_size: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 /// Attributes that can be set on a file or directory
 /// in a FAT file system.
 pub struct FileAttributes {
@@ -55,7 +55,7 @@ impl FileAttributes {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct File {
     name: String,
     data: Vec<u8>,
@@ -118,16 +118,22 @@ impl FAT {
         FAT {
             files: Vec::<File>::new(),
             sector_count: u32::from(VBR::set_sectors_per_fat(sector_count)),
-            clusters: vec![
-                0;
+            clusters: FAT::initialize_fat(
                 (sector_count / u32::from(VBR::set_sectors_per_cluster(sector_count)))
                     .try_into()
-                    .unwrap()
-            ],
+                    .unwrap(),
+            ),
             cluster_count: sector_count / u32::from(VBR::set_sectors_per_cluster(sector_count)),
             cluster_size: u32::from(u32::from(VBR::set_sectors_per_cluster(sector_count)) * 512),
             sectors_per_fat: 46,
         }
+    }
+
+    /// No idea why this is there yet
+    fn initialize_fat(cluster_count: usize) -> Vec<u16> {
+        let mut clusters = vec![0; cluster_count];
+        clusters[0] = 0xfff8;
+        clusters
     }
 
     pub fn add_file(file: File) {}
@@ -135,17 +141,24 @@ impl FAT {
     /// Return a list of free clusters for use by the given File
     /// We're regenerating the whole disk with every write, so we always get
     /// perfect defragmentation and race conditions don't exit.
-    pub fn find_free_clusters(&self, file: &File) -> Vec<u16> {
+    pub fn allocate_clusters(&self, file: &File) -> Vec<u16> {
         let filesize: u32 = file.get_size(); // Size of file in bytes
         let mut required_clusters = 0u32;
         if filesize < self.cluster_size {
             required_clusters = 1;
         } else {
-            required_clusters = num::integer::div_ceil(filesize, self.cluster_size);
+            required_clusters = num::integer::div_ceil(filesize, self.cluster_size) + 1;
         }
         let mut free_clusters = Vec::<u16>::new();
-        for count in 0..required_clusters {
-            free_clusters.push(count as u16);
+        for (i, item) in self
+            .clusters
+            .iter()
+            .enumerate()
+            .take(required_clusters.try_into().unwrap())
+        {
+            if *item == 0x0000 {
+                free_clusters.push(i as u16);
+            }
         }
         free_clusters
     }

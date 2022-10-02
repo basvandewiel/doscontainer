@@ -136,3 +136,28 @@ pub fn vbr_as_bytes() {
     ];
     assert_eq!(vbr.as_bytes(), reference);
 }
+
+#[test]
+pub fn iosys_to_clusters() {
+    let io_sys = File::new("IOSYS".to_string(), include_bytes!("../os/IO.SYS").to_vec());
+    let fat = FAT::new(94532);
+    let reference: Vec<u16> = vec![
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+    ];
+    let clusters = fat.allocate_clusters(&io_sys);
+    assert_eq!(clusters, reference);
+}
+
+#[test]
+pub fn msdossys_to_clusters() {
+    let msdos_sys = File::new(
+        "MSDOSSYS".to_string(),
+        include_bytes!("../os/MSDOS.SYS").to_vec(),
+    );
+    let fat = FAT::new(94532);
+    let reference: Vec<u16> = vec![
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    ];
+    let clusters = fat.allocate_clusters(&msdos_sys);
+    assert_eq!(clusters, reference);
+}
