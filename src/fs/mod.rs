@@ -11,7 +11,7 @@ pub struct FAT {
     sectors_per_fat: u32,
     clusters: Vec<u16>,
     cluster_count: u32,
-    cluster_size: u32,
+    cluster_size: usize,
 }
 
 #[derive(Debug, PartialEq)]
@@ -72,8 +72,8 @@ impl File {
             attributes: FileAttributes::default(),
         }
     }
-    pub fn get_size(&self) -> u32 {
-        return u32::try_from(self.data.len()).unwrap();
+    pub fn get_size(&self) -> usize {
+        return self.data.len();
     }
     /// Validate the requested file name according to the
     /// rules as determined by Microsoft in their spec document
@@ -124,26 +124,31 @@ impl FAT {
                     .unwrap(),
             ),
             cluster_count: sector_count / u32::from(VBR::set_sectors_per_cluster(sector_count)),
-            cluster_size: u32::from(u32::from(VBR::set_sectors_per_cluster(sector_count)) * 512),
+            cluster_size: usize::from(VBR::set_sectors_per_cluster(sector_count)) * 512,
             sectors_per_fat: 46,
         }
     }
 
-    /// No idea why this is there yet
+    /// No idea why this is there yet. Cluster 0 contains this when formatted
+    /// using MS-DOS so I'm replicating it here.
     fn initialize_fat(cluster_count: usize) -> Vec<u16> {
         let mut clusters = vec![0; cluster_count];
         clusters[0] = 0xfff8;
         clusters
     }
 
-    pub fn add_file(file: File) {}
+    /// Push a new file onto the file system.
+    pub fn push_file(&self, mut file: File) {
+        file.clusters = self.allocate_clusters(&file);
+        let chunks = file.data.chunks(self.cluster_size);
+    }
 
     /// Return a list of free clusters for use by the given File
     /// We're regenerating the whole disk with every write, so we always get
     /// perfect defragmentation and race conditions don't exit.
     pub fn allocate_clusters(&self, file: &File) -> Vec<u16> {
-        let filesize: u32 = file.get_size(); // Size of file in bytes
-        let mut required_clusters = 0u32;
+        let filesize: usize = file.get_size(); // Size of file in bytes
+        let mut required_clusters = 0usize;
         if filesize < self.cluster_size {
             required_clusters = 1;
         } else {
