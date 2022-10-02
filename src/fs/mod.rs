@@ -1,6 +1,5 @@
 use crate::fs::vbr::VBR;
 use bitvec::prelude::*;
-use num::integer;
 
 mod tests;
 pub mod vbr;
@@ -119,7 +118,12 @@ impl FAT {
         FAT {
             files: Vec::<File>::new(),
             sector_count: u32::from(VBR::set_sectors_per_fat(sector_count)),
-            clusters: Vec::<u16>::new(),
+            clusters: vec![
+                0;
+                (sector_count / u32::from(VBR::set_sectors_per_cluster(sector_count)))
+                    .try_into()
+                    .unwrap()
+            ],
             cluster_count: sector_count / u32::from(VBR::set_sectors_per_cluster(sector_count)),
             cluster_size: u32::from(u32::from(VBR::set_sectors_per_cluster(sector_count)) * 512),
             sectors_per_fat: 46,

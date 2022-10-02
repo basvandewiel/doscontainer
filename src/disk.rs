@@ -1,7 +1,6 @@
 use crate::chs::CHS;
 use crate::fs::vbr::VBR;
 use crate::partition::Partition;
-use fatfs::*;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::*;
@@ -147,53 +146,6 @@ impl Disk {
         self.write_bootcode();
         self.write_partitions();
         self.write_signature();
-        //self.write_volume_bootcode();
-        //self.format_partition(&self.partitions[0]);
-        //self.write_sys(&self.partitions[0]);
-        // self.write_volume_bootcode();
-    }
-    pub fn format_partition(&self, partition: &Partition) {
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(&self.path)
-            .unwrap();
-        let file_part = fscommon::StreamSlice::new(
-            file,
-            partition.get_start_offset(),
-            partition.get_end_offset(),
-        )
-        .unwrap();
-        fatfs::format_volume(file_part, FormatVolumeOptions::new()).unwrap();
-    }
-    pub fn write_sys(&self, partition: &Partition) {
-        // Integrate the bytes for MS-DOS system files
-        let io_sys = include_bytes!("os/IO.SYS");
-        let msdos_sys = include_bytes!("os/MSDOS.SYS");
-        let command_com = include_bytes!("os/COMMAND.COM");
-        let drvspace_bin = include_bytes!("os/DRVSPACE.BIN");
-
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(&self.path)
-            .unwrap();
-        let file_part = fscommon::StreamSlice::new(
-            file,
-            partition.get_start_offset(),
-            partition.get_end_offset(),
-        )
-        .unwrap();
-        let options = fatfs::FsOptions::new().update_accessed_date(true);
-        let fs = fatfs::FileSystem::new(file_part, options).unwrap();
-        let mut iosys = fs.root_dir().create_file("IO.SYS").unwrap();
-        iosys.write_all(io_sys).unwrap();
-        let mut msdossys = fs.root_dir().create_file("MSDOS.SYS").unwrap();
-        msdossys.write_all(msdos_sys).unwrap();
-        let mut commandcom = fs.root_dir().create_file("COMMAND.COM").unwrap();
-        commandcom.write_all(command_com).unwrap();
-        let mut drvspacebin = fs.root_dir().create_file("DRVSPACE.BIN").unwrap();
-        drvspacebin.write_all(drvspace_bin).unwrap();
     }
     pub fn write_bytes(&self, offset: u32, bytes: &Vec<u8>) {
         let mut file = OpenOptions::new()
@@ -233,23 +185,5 @@ impl Disk {
             .expect("Failed to open file.");
         f.seek(SeekFrom::Start(0x1FE)).unwrap();
         f.write_all(&signature).unwrap();
-    }
-    /// Temporary function to test writing the VBR bootocde
-    /// This mess now nukes the VBR that fatfs writes, then layers
-    /// the MS-DOS 6.22 bootcode on top of that. The only reason this
-    /// is in here now, is to test if we can get to a working situation.
-    /// Once it works, decompose the code to its rightful place.
-    pub fn write_volume_bootcode(&self) {
-        let vbr = VBR::new(23344);
-        let mut file = OpenOptions::new()
-            .write(true)
-            .open(&self.path)
-            .expect("Failed to open file");
-        file.seek(SeekFrom::Start(63*512)).unwrap();
-        let bytes = vbr.as_bytes();
-        file.write_all(&bytes).unwrap();
-        // file.seek(SeekFrom::Start(32317)).unwrap();
-        // let bytes = vbr.get_bootcode();
-        // file.write_all(&bytes).unwrap();
     }
 }
