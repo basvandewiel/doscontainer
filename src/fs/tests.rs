@@ -1,4 +1,5 @@
 use crate::fs::FileAttributes;
+use crate::fs::File;
 
 #[test]
 pub fn attributes_empty() {
@@ -52,8 +53,32 @@ pub fn attribute_archive() {
 /// Special combined case for MS-DOS system files
 pub fn attribs_rsh_enabled() {
     let mut attribs = FileAttributes::default();
-     attribs.read_only = true;
-     attribs.hidden = true;
-     attribs.system = true;
-     assert_eq!(attribs.as_byte(), 7);
+    attribs.read_only = true;
+    attribs.hidden = true;
+    attribs.system = true;
+    assert_eq!(attribs.as_byte(), 7);
+}
+
+#[test]
+pub fn valid_filename() {
+    let name: &str = "FILEEXE";
+    assert_eq!(File::validate_name(name), true);
+}
+
+#[test]
+pub fn invalid_filename_starts_with_space() {
+    let name: &str = " FILEEXE";
+    assert_eq!(File::validate_name(name), false);
+}
+
+#[test]
+pub fn invalid_filename_has_dotchar() {
+    let name: &str = "FILE.EXE";
+    assert_eq!(File::validate_name(name), false);
+}
+
+#[test]
+pub fn invalide_filename_too_long() {
+    let name: &str = "THISFILENAMEISMUCHTOOLONG";
+    assert_eq!(File::validate_name(name), false);
 }
