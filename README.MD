@@ -36,20 +36,13 @@ is very much appreciated.
 
 ## Current progress
 
-The current progress is about 30% of the way towards step 1: the automated generation of
-virtual hard drive images. That's also one of the most complicated steps as it's hard to do
-this using modern tools. The doscontainer binary that you can build from this repo will perform
-this function and probably not much else. It's built in Rust, a systems language that feels
-more at home for me than anything else that allows me to write individual bits to a specific
-spot inside a file.
+The main task that needs to be tackled, is a way to format the disk image with a valid
+FAT12/16 filesystem that will boot MS-DOS. Whether this happens through the doscontainer
+binary or some other tool isn't important. As progress currently stands, bootability of the
+images is the main blocker.
 
-The binary itself is not supposed to run on a constrained platform like the systems we are
-emulating, so it's no problem that the compiled release build already clocks in at over 800KB.
-The main emphasis for it is to be correct and somewhat maintainable.
+## Contributing
 
-## Next steps
-
-I'm envisioning the other steps as much simpler in a technical sense, leaning more heavily on
-modern CI/CD tools that should be able to mount the partition from a disk image and dump all
-sorts of templated files in there. Tools like Ansible could be a good fit for this, but I'm
-not at that point of the design yet.
+Please use the GitHub issue tracking system. Pick an issue, fork the repo and send in the
+pull requests. Do use the issue tracker, though, so it's visible that you're working on an
+issue to prevent duplication of effort.
