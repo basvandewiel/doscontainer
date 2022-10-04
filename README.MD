@@ -40,9 +40,3 @@ The main task that needs to be tackled, is a way to format the disk image with a
 FAT12/16 filesystem that will boot MS-DOS. Whether this happens through the doscontainer
 binary or some other tool isn't important. As progress currently stands, bootability of the
 images is the main blocker.
-
-## Contributing
-
-Please use the GitHub issue tracking system. Pick an issue, fork the repo and send in the
-pull requests. Do use the issue tracker, though, so it's visible that you're working on an
-issue to prevent duplication of effort.
