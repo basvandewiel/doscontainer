@@ -72,6 +72,24 @@ impl File {
             attributes: FileAttributes::default(),
         }
     }
+    pub fn set_readonly(&mut self, readonly: bool) {
+        self.attributes.read_only = readonly;
+    }
+    pub fn set_hidden(&mut self, hidden: bool) {
+        self.attributes.hidden = hidden;
+    }
+    pub fn set_system(&mut self, system: bool) {
+        self.attributes.system = system;
+    }
+    pub fn set_vol_id(&mut self, vol_id: bool) {
+        self.attributes.vol_id = vol_id;
+    }
+    pub fn set_is_dir(&mut self, is_dir: bool) {
+        self.attributes.is_dir = is_dir;
+    }
+    pub fn set_archive(&mut self, archive: bool) {
+        self.attributes.archive = archive;
+    }
     pub fn get_size(&self) -> usize {
         return self.data.len();
     }
