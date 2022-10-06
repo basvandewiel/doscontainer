@@ -9,4 +9,5 @@ edition = "2021"
 bitvec = "1"
 clap = { version = "3.1.1", features = ["derive"] }
 fscommon = "0.1.1"
-fatfs = "0.3.5"
+num = "0.4.0"
+

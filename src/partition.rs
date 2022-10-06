@@ -1,5 +1,7 @@
 use crate::chs::*;
 use crate::disk::*;
+use crate::fs::vbr::VBR;
+use crate::fs::FAT;
 
 /// Custom type for a Partition
 #[derive(Debug)]
@@ -12,6 +14,8 @@ pub struct Partition {
     pub(crate) last_sector: CHS,
     pub(crate) sector_count: u32,
     pub(crate) last_lba: u32,
+    pub(crate) boot_record: VBR,
+    pub(crate) FAT: FAT,
 }
 
 impl Partition {
@@ -60,6 +64,8 @@ impl Partition {
             first_lba: start_sector,
             last_lba: requested_sectors - start_sector,
             sector_count: requested_sectors,
+            boot_record: VBR::new(requested_sectors),
+            FAT: FAT::new(requested_sectors),
         };
 
         return my_partition;
@@ -72,7 +78,7 @@ impl Partition {
     }
     /// The last byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
     pub fn get_end_offset(&self) -> u64 {
-        let end_offset = (self.last_lba * 512) + 512;
+        let end_offset = self.last_lba * 512;
         return u64::from(end_offset);
     }
     /// Return the bytes to be written to the MBR's partition table.
