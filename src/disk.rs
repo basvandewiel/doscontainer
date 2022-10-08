@@ -155,6 +155,24 @@ impl Disk {
         file.seek(SeekFrom::Start(u64::from(offset))).unwrap();
         file.write_all(&bytes).unwrap();
     }
+    pub fn write_sector(&self, sector: u32, data: [u8; 512]) {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .open(&self.path)
+            .expect("Failed to open disk for writing.");
+        file.seek(SeekFrom::Start(u64::from(sector * 512))).unwrap();
+        file.write_all(&data).unwrap();
+    }
+    pub fn read_sector(&self, sector: u32) -> [u8; 512] {
+        let file = OpenOptions::new()
+            .read(true)
+            .open(&self.path)
+            .expect("Failed to open disk for reading.");
+        let mut reader = BufReader::new(file);
+        let mut sector_buffer = [0u8; 512];
+        reader.read_exact(&mut sector_buffer);
+        sector_buffer
+    }
     /// Write bootcode bytes to the MBR
     pub fn write_bootcode(&self) {
         let mut file = OpenOptions::new()
