@@ -6,6 +6,9 @@ use std::fs::OpenOptions;
 use std::io::*;
 use std::path::PathBuf;
 
+/// A Disk is the holding structure for a collection of Sectors. It also
+/// represents the interface between what the emulator gets to see, and what is
+/// present as a file on the host computer.
 #[derive(Debug)]
 pub struct Disk {
     pub(crate) bootcode: [u8; 446],
@@ -14,6 +17,54 @@ pub struct Disk {
     pub(crate) path: PathBuf,
     pub(crate) size: u64,
     pub(crate) sector_count: u64,
+    sectors: Vec<Sector>,
+}
+
+/// Data structure for individual sectors. A sector holds 512 bytes of data and is
+/// the smallest unit of data a Disk can work with. The data is kept in a Vec<u8> internally.
+/// The position of the sector is the LBA address and we keep a 'dirty' flag to see if the
+/// sector is present on the disk.
+#[derive(Debug)]
+pub struct Sector {
+    data: Vec<u8>,
+    dirty: bool,
+    position: u64,
+}
+
+impl Sector {
+    /// Create a new Sector
+    pub fn new(position: u64) -> Self {
+        Sector {
+            data: Vec::<u8>::new(),
+            dirty: true,
+            position: 0,
+        }
+    }
+
+    /// Returns the position of the sector on a Disk
+    pub fn get_position(&self) -> u64 {
+        self.position
+    }
+
+    /// Set the position of the Sector on a Disk
+    pub fn set_position(&mut self, position: u64) {
+        self.position = position;
+    }
+
+    /// Marks the Sector as clean
+    pub fn mark_clean(&mut self) {
+        self.dirty = false;
+    }
+
+    /// Marks the Sector as dirty
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    /// Returns true if the sector is dirty, false if it's not.
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
+    }
 }
 
 impl Disk {
@@ -27,6 +78,7 @@ impl Disk {
             path: PathBuf::from(path),
             size: size,
             sector_count: size / 512,
+            sectors: Vec::<Sector>::new(),
         }
     }
     /// Instantiate an empty Disk struct
@@ -38,6 +90,7 @@ impl Disk {
             path: PathBuf::from(""),
             size: 0,
             sector_count: 0,
+            sectors: Vec::<Sector>::new(),
         }
     }
     pub fn push_partition(&mut self, partition: Partition) {
@@ -181,7 +234,9 @@ impl Disk {
             .expect("Failed to open disk for reading.");
         let mut reader = BufReader::new(file);
         let mut sector_buffer = [0u8; 512];
-        reader.seek(SeekFrom::Start(u64::from(sector * 512))).unwrap();
+        reader
+            .seek(SeekFrom::Start(u64::from(sector * 512)))
+            .unwrap();
         reader.read_exact(&mut sector_buffer);
         sector_buffer
     }
