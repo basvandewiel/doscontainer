@@ -26,12 +26,13 @@ impl Partition {
         mut start_sector: u32,
         partition_bytes: u64,
     ) -> Partition {
-        let sector_size: u32 = 512;
-        let mut requested_sectors: u32 = u32::try_from(partition_bytes).unwrap() / sector_size;
+        let sector_size: usize = 512;
+        let mut requested_sectors: u32 =
+            u32::try_from(partition_bytes).unwrap() / u32::try_from(sector_size).unwrap();
 
         // Special case: 0 grows the partition to fill the entire disk
         if requested_sectors == 0 {
-            let disk_sectors = disk.size / u64::from(sector_size);
+            let disk_sectors = disk.size / sector_size;
             let free_sectors = disk_sectors - 64;
             requested_sectors = u32::try_from(free_sectors).unwrap();
         }

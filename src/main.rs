@@ -11,7 +11,7 @@ struct Args {
 
     /// Disk size in bytes
     #[clap(short, long)]
-    size: u64,
+    size: usize,
 
     /// Debug flag
     #[clap(short, long)]

@@ -1,4 +1,5 @@
 use crate::chs::CHS;
+use crate::sector::Sector;
 use crate::fs::vbr::VBR;
 use crate::partition::Partition;
 use std::fs::File;
@@ -15,61 +16,14 @@ pub struct Disk {
     pub(crate) geometry: CHS,
     pub(crate) partitions: Vec<Partition>,
     pub(crate) path: PathBuf,
-    pub(crate) size: u64,
-    pub(crate) sector_count: u64,
+    pub(crate) size: usize,
+    pub(crate) sector_count: usize,
     sectors: Vec<Sector>,
-}
-
-/// Data structure for individual sectors. A sector holds 512 bytes of data and is
-/// the smallest unit of data a Disk can work with. The data is kept in a Vec<u8> internally.
-/// The position of the sector is the LBA address and we keep a 'dirty' flag to see if the
-/// sector is present on the disk.
-#[derive(Debug)]
-pub struct Sector {
-    data: Vec<u8>,
-    dirty: bool,
-    position: u64,
-}
-
-impl Sector {
-    /// Create a new Sector
-    pub fn new(position: u64) -> Self {
-        Sector {
-            data: Vec::<u8>::new(),
-            dirty: true,
-            position: 0,
-        }
-    }
-
-    /// Returns the position of the sector on a Disk
-    pub fn get_position(&self) -> u64 {
-        self.position
-    }
-
-    /// Set the position of the Sector on a Disk
-    pub fn set_position(&mut self, position: u64) {
-        self.position = position;
-    }
-
-    /// Marks the Sector as clean
-    pub fn mark_clean(&mut self) {
-        self.dirty = false;
-    }
-
-    /// Marks the Sector as dirty
-    pub fn mark_dirty(&mut self) {
-        self.dirty = true;
-    }
-
-    /// Returns true if the sector is dirty, false if it's not.
-    pub fn is_dirty(&self) -> bool {
-        self.dirty
-    }
 }
 
 impl Disk {
     /// Instantiate a new Disk struct at a location (Path) and of a certain size in bytes (Size).
-    pub fn new(path: &str, mut size: u64) -> Disk {
+    pub fn new(path: &str, mut size: usize) -> Disk {
         size = (size / 512) * 512;
         Disk {
             bootcode: Disk::load_bootcode("DOS622"),
@@ -92,6 +46,10 @@ impl Disk {
             sector_count: 0,
             sectors: Vec::<Sector>::new(),
         }
+    }
+
+    pub fn get_sector(&self, position: usize) -> &Sector {
+        &self.sectors[position]
     }
     pub fn push_partition(&mut self, partition: Partition) {
         self.partitions.push(partition);
@@ -120,9 +78,15 @@ impl Disk {
         loaded_disk.path = PathBuf::from(path);
 
         // Set the size from the loaded file
-        loaded_disk.size =
-            u64::try_from(f.metadata().unwrap().len()).expect("Failed to get file size.");
+        loaded_disk.size = usize::try_from(f.metadata().unwrap().len()).expect("Failed to get size from disk image.");
 
+        // Test if size is a multiple of 512, making it sector-aligned
+        if (loaded_disk.size / 512) * 512 != loaded_disk.size {
+            panic!("Disk image is not sector aligned.");
+        }
+
+        loaded_disk.sector_count = loaded_disk.size / 512;
+        
         // Geometry does not get stored in the image file, so calculate it.
         loaded_disk.geometry = Disk::calculate_geometry(loaded_disk.size);
 
@@ -136,7 +100,7 @@ impl Disk {
     }
     /// Calculate the CHS geometry for a Disk struct based on its size in bytes.
     /// The calculation is based on what the Bochs BIOS expects.
-    pub fn calculate_geometry(size: u64) -> CHS {
+    pub fn calculate_geometry(size: usize) -> CHS {
         // Small disks use the 'none' algorithm
         if size < 528482304 {
             return Disk::geometry_none(size);
@@ -173,7 +137,7 @@ impl Disk {
     }
     /// Bochs geomtry algorithm for the 'no translation' case.
     /// Disks that remain within the original int13h limit of 528MB.
-    fn geometry_none(size: u64) -> CHS {
+    fn geometry_none(size: usize) -> CHS {
         let sector_count = size / 512;
         let mut geom = CHS::empty();
         let heads_range = 1..=15;
@@ -190,18 +154,42 @@ impl Disk {
     }
     /// Geometry calculation for disks larger than the LBA limit.
     /// [TODO] This still needs a working implementation!
-    fn geometry_large(_size: u64) -> CHS {
+    fn geometry_large(_size: usize) -> CHS {
         // Empty placeholder for now so this compiles.
         return CHS::empty();
     }
     /// Commit the in-memory Disk struct to persistent storage.
     pub fn write(&self) {
         let f = File::create(self.path.as_path()).expect("Failed to create file.");
-        f.set_len(self.size)
+        f.set_len(u64::try_from(self.size).unwrap())
             .expect("Failed to grow file to requested size.");
-        self.write_bootcode();
-        self.write_partitions();
-        self.write_signature();
+    }
+    /// Generate a Sector struct to be written to the Disk's boot sector
+    pub fn build_bootsector(&mut self) {
+        let mut bootsector = Sector::new(0);
+        // Walk through the bootcode bytes and place them at the start of the sector.
+        // This (usually) is x86 assembly code that was lifted straight from the original OS.
+        for (index, byte) in self.bootcode.iter().enumerate() {
+            bootsector.write_byte(index, *byte);
+        }
+        // Walk through Partition structs in the Disk object and add table entries for them.
+        for partition in &self.partitions {
+            let bytes = partition.as_bytes();
+            let mut counter = partition.offset;
+            for byte in bytes {
+                bootsector.write_byte(counter.into(), byte);
+                counter += 1;
+            }
+        }
+        // A valid DOS MBR boot sector requires two "magic" bytes at the very end. These are the
+        // values and we simply put them there because that's how the world works.
+        bootsector.write_byte(0x1FE, 0x55);
+        bootsector.write_byte(0x1FF, 0xAA);
+        if self.sectors.len() <= 0 {
+            self.sectors.push(bootsector);
+        } else {
+            self.sectors[0] = bootsector;
+        }
     }
     pub fn write_bytes(&self, offset: u32, bytes: &Vec<u8>) {
         let mut file = OpenOptions::new()
@@ -210,21 +198,9 @@ impl Disk {
             .expect("Failed to open file.");
         file.seek(SeekFrom::Start(u64::from(offset))).unwrap();
         file.write_all(&bytes).unwrap();
-        file.sync_all();
+        file.sync_all().unwrap();
     }
-    pub fn write_sector(&self, sector: u64, data: [u8; 512]) {
-        if sector > self.sector_count {
-            panic!("Sector not available on this disk.");
-        }
-        let mut file = OpenOptions::new()
-            .write(true)
-            .open(&self.path)
-            .expect("Failed to open disk for writing.");
-        file.seek(SeekFrom::Start(u64::from(sector * 512))).unwrap();
-        file.write_all(&data).unwrap();
-        file.sync_all();
-    }
-    pub fn read_sector(&self, sector: u64) -> [u8; 512] {
+    pub fn read_sector(&self, sector: usize) -> Sector {
         if sector > self.sector_count {
             panic!("Sector not available on this disk.");
         }
@@ -235,10 +211,14 @@ impl Disk {
         let mut reader = BufReader::new(file);
         let mut sector_buffer = [0u8; 512];
         reader
-            .seek(SeekFrom::Start(u64::from(sector * 512)))
+            .seek(SeekFrom::Start(u64::try_from(sector * 512).unwrap()))
             .unwrap();
         reader.read_exact(&mut sector_buffer);
-        sector_buffer
+        let mut new_sector = Sector::new(sector);
+        for (index, byte) in sector_buffer.iter().enumerate() {
+            new_sector.write_byte(index, *byte);
+        }
+        new_sector
     }
     /// Write bootcode bytes to the MBR
     pub fn write_bootcode(&self) {

@@ -2,10 +2,10 @@
 mod tests {
     use crate::chs::CHS;
     use crate::disk::Disk;
+    use crate::sector::Sector;
     use crate::partition::Partition;
     use std::fs;
     use std::path::PathBuf;
-    use std::{thread, time};
 
     #[test]
     fn disk_geometry() {
@@ -97,10 +97,7 @@ mod tests {
             PathBuf::from("ff665c8ce7f5e1585ba2dcdc4109be56ef82dd0fccb5038449cc4fcf178345c1.raw");
         my_disk.size = 50000000;
         my_disk.write();
-        // let ten_millis = time::Duration::from_millis(1000);
-        // let now = time::Instant::now();
-        // thread::sleep(ten_millis);
-        let mut reference = [
+        let mut reference: [u8; 512] = [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -120,31 +117,65 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 85, 170,
         ];
-        let null_sector = Disk::read_sector(&my_disk, 0);
-        fs::remove_file("ff665c8ce7f5e1585ba2dcdc4109be56ef82dd0fccb5038449cc4fcf178345c1.raw");
-        assert_eq!(null_sector, reference);
+        let mut reference_sector = Sector::new(0);
+        for (index, byte) in reference.iter().enumerate() {
+            reference_sector.write_byte(index, *byte);
+        }
+        let null_sector = my_disk.read_sector(0);
+        fs::remove_file("ff665c8ce7f5e1585ba2dcdc4109be56ef82dd0fccb5038449cc4fcf178345c1.raw")
+            .unwrap();
+        assert_eq!(null_sector, reference_sector);
     }
 
     #[test]
     #[should_panic]
     fn read_sector_out_of_bounds() {
-        let mut my_disk = Disk::new("ff665c8ce7f5e1585ba2dcdc4109be56ef82dd0fccb5038449cc4fcf178345c1.raw", 50000000);
-        let mut reference = [0u8; 512];
+        let my_disk = Disk::new(
+            "ff665c8ce7f5e1585ba2dcdc4109be56ef82dd0fccb5038449cc4fcf178345c1.raw",
+            50000000,
+        );
+        my_disk.write();
+        let reference = Sector::new(0);
         let bad_sector = Disk::read_sector(&my_disk, 2000000000);
         assert_eq!(bad_sector, reference);
     }
 
-    // Create new disk. Write a single byte to sector 2, location 20. Read back the sector and check if we get
-    // that single byte back.
+    // Test building a Sector struct for the bootsector. Compare the default MS-DOS 6.22 boot sector to the
+    // statically provided byte-array in this function
     #[test]
-    fn write_valid_sector() {
-        let mut my_disk = Disk::new("af665c8ce7f5e1585ba2dcdc4109be56ef82dd0fccb5038449cc4fcf178345c1.raw", 50000000);
-        my_disk.write();
-        let mut reference = [0u8; 512];
-        reference[20] = 0xFF;
-        my_disk.write_sector(2, reference);
-        let read_back = my_disk.read_sector(2);
-        fs::remove_file("af665c8ce7f5e1585ba2dcdc4109be56ef82dd0fccb5038449cc4fcf178345c1.raw");
-        assert_eq!(reference, read_back);
+    fn disk_build_bootsector() {
+        let mut my_disk = Disk::new("asdf24r2asdf2erasfasd2rafd.raw", 50000000);
+        my_disk.push_partition(Partition::new(&my_disk, 1, 63, 50000000));
+        let reference_data: [u8; 512] = [
+            250, 51, 192, 142, 208, 188, 0, 124, 139, 244, 80, 7, 80, 31, 251, 252, 191, 0, 6, 185,
+            0, 1, 242, 165, 234, 29, 6, 0, 0, 190, 190, 7, 179, 4, 128, 60, 128, 116, 14, 128, 60,
+            0, 117, 28, 131, 198, 16, 254, 203, 117, 239, 205, 24, 139, 20, 139, 76, 2, 139, 238,
+            131, 198, 16, 254, 203, 116, 26, 128, 60, 0, 116, 244, 190, 139, 6, 172, 60, 0, 116,
+            11, 86, 187, 7, 0, 180, 14, 205, 16, 94, 235, 240, 235, 254, 191, 5, 0, 187, 0, 124,
+            184, 1, 2, 87, 205, 19, 95, 115, 12, 51, 192, 205, 19, 79, 117, 237, 190, 163, 6, 235,
+            211, 190, 194, 6, 191, 254, 125, 129, 61, 85, 170, 117, 199, 139, 245, 234, 0, 124, 0,
+            0, 73, 110, 118, 97, 108, 105, 100, 32, 112, 97, 114, 116, 105, 116, 105, 111, 110, 32,
+            116, 97, 98, 108, 101, 0, 69, 114, 114, 111, 114, 32, 108, 111, 97, 100, 105, 110, 103,
+            32, 111, 112, 101, 114, 97, 116, 105, 110, 103, 32, 115, 121, 115, 116, 101, 109, 0,
+            77, 105, 115, 115, 105, 110, 103, 32, 111, 112, 101, 114, 97, 116, 105, 110, 103, 32,
+            115, 121, 115, 116, 101, 109, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 128, 1, 1, 0, 6, 15, 63, 101, 63, 0, 0, 0, 196, 120, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 85, 170,
+        ];
+        let mut reference_sector = Sector::new(0);
+        for (index, byte) in reference_data.iter().enumerate() {
+            reference_sector.write_byte(index, *byte);
+        }
+        my_disk.build_bootsector();
+        let mut bootsector = my_disk.get_sector(0);
+        assert_eq!(bootsector, &reference_sector);
     }
 }
