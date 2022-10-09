@@ -13,6 +13,7 @@ pub struct Disk {
     pub(crate) partitions: Vec<Partition>,
     pub(crate) path: PathBuf,
     pub(crate) size: u64,
+    pub(crate) sector_count: u64,
 }
 
 impl Disk {
@@ -25,6 +26,7 @@ impl Disk {
             partitions: Vec::<Partition>::new(),
             path: PathBuf::from(path),
             size: size,
+            sector_count: size / 512,
         }
     }
     /// Instantiate an empty Disk struct
@@ -35,6 +37,7 @@ impl Disk {
             partitions: Vec::<Partition>::new(),
             path: PathBuf::from(""),
             size: 0,
+            sector_count: 0,
         }
     }
     pub fn push_partition(&mut self, partition: Partition) {
@@ -154,22 +157,31 @@ impl Disk {
             .expect("Failed to open file.");
         file.seek(SeekFrom::Start(u64::from(offset))).unwrap();
         file.write_all(&bytes).unwrap();
+        file.sync_all();
     }
-    pub fn write_sector(&self, sector: u32, data: [u8; 512]) {
+    pub fn write_sector(&self, sector: u64, data: [u8; 512]) {
+        if sector > self.sector_count {
+            panic!("Sector not available on this disk.");
+        }
         let mut file = OpenOptions::new()
             .write(true)
             .open(&self.path)
             .expect("Failed to open disk for writing.");
         file.seek(SeekFrom::Start(u64::from(sector * 512))).unwrap();
         file.write_all(&data).unwrap();
+        file.sync_all();
     }
-    pub fn read_sector(&self, sector: u32) -> [u8; 512] {
+    pub fn read_sector(&self, sector: u64) -> [u8; 512] {
+        if sector > self.sector_count {
+            panic!("Sector not available on this disk.");
+        }
         let file = OpenOptions::new()
             .read(true)
             .open(&self.path)
             .expect("Failed to open disk for reading.");
         let mut reader = BufReader::new(file);
         let mut sector_buffer = [0u8; 512];
+        reader.seek(SeekFrom::Start(u64::from(sector * 512))).unwrap();
         reader.read_exact(&mut sector_buffer);
         sector_buffer
     }
@@ -180,6 +192,7 @@ impl Disk {
             .open(&self.path)
             .expect("Failed to open file.");
         file.write_all(&self.bootcode).unwrap();
+        file.sync_all();
     }
     /// Loop through the Partition structs and commit them to disk.
     pub fn write_partitions(&self) {
@@ -192,6 +205,7 @@ impl Disk {
                 .unwrap();
             let bytes = partition.as_bytes();
             f.write_all(&bytes).unwrap();
+            f.sync_all();
         }
     }
     /// Write the "magic number" signature bytes to the MBR
@@ -203,5 +217,6 @@ impl Disk {
             .expect("Failed to open file.");
         f.seek(SeekFrom::Start(0x1FE)).unwrap();
         f.write_all(&signature).unwrap();
+        f.sync_all();
     }
 }
