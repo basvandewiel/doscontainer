@@ -7,6 +7,8 @@ use std::fs::OpenOptions;
 use std::io::*;
 use std::path::PathBuf;
 
+mod tests;
+
 /// A Disk is the holding structure for a collection of Sectors. It also
 /// represents the interface between what the emulator gets to see, and what is
 /// present as a file on the host computer.
