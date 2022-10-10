@@ -10,4 +10,3 @@ pub mod sector;
 /// It mainly implements the VBR, BIOS Parameter block and the MS-DOS 6.22 Volume Boot Code.
 pub mod fs;
 pub mod partition;
-mod tests;
