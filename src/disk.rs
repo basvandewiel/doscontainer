@@ -243,15 +243,4 @@ impl Disk {
             f.sync_all();
         }
     }
-    /// Write the "magic number" signature bytes to the MBR
-    pub fn write_signature(&self) {
-        let signature: [u8; 2] = [0x55, 0xAA];
-        let mut f = OpenOptions::new()
-            .write(true)
-            .open(&self.path)
-            .expect("Failed to open file.");
-        f.seek(SeekFrom::Start(0x1FE)).unwrap();
-        f.write_all(&signature).unwrap();
-        f.sync_all();
-    }
 }
