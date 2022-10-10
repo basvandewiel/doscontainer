@@ -143,8 +143,8 @@ impl Disk {
         let heads_range = 1..=15;
         for hpc in heads_range.rev() {
             let cylinders = sector_count / (hpc * 63);
-            geom.cylinder = u16::try_from(cylinders).unwrap();
-            geom.head = u8::try_from(hpc).unwrap();
+            geom.cylinder = u16::try_from(cylinders).expect("Too many cylinders!");
+            geom.head = u8::try_from(hpc).expect("Too many heads!");
             geom.sector = 63;
             if cylinders < 1023 {
                 break;
