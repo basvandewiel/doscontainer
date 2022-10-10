@@ -26,7 +26,9 @@ pub struct Disk {
 impl Disk {
     /// Instantiate a new Disk struct at a location (Path) and of a certain size in bytes (Size).
     pub fn new(path: &str, mut size: usize) -> Disk {
+        // Fudge the provided size so that it gets sector-aligned
         size = (size / 512) * 512;
+        // Compose the final Disk struct to return
         Disk {
             bootcode: Disk::load_bootcode("DOS622"),
             geometry: Disk::calculate_geometry(size),
@@ -73,6 +75,7 @@ impl Disk {
         return *bootcode;
     }
 
+    /// Add a sector to the end of the current Disk structure
     pub fn push_sector(&mut self, sector: Sector) {
         self.sectors.push(sector);
     }
