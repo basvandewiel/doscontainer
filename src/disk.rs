@@ -164,7 +164,7 @@ impl Disk {
         f.set_len(u64::try_from(self.size).unwrap())
             .expect("Failed to grow file to requested size.");
     }
-    /// Generate a Sector struct to be written to the Disk's boot sector
+    /// Generate a valid MBR boot sector and put it into this Disk's sector 0.
     pub fn build_bootsector(&mut self) {
         let mut bootsector = Sector::new(0);
         // Walk through the bootcode bytes and place them at the start of the sector.
@@ -219,28 +219,5 @@ impl Disk {
             new_sector.write_byte(index, *byte);
         }
         new_sector
-    }
-    /// Write bootcode bytes to the MBR
-    pub fn write_bootcode(&self) {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .open(&self.path)
-            .expect("Failed to open file.");
-        file.write_all(&self.bootcode).unwrap();
-        file.sync_all();
-    }
-    /// Loop through the Partition structs and commit them to disk.
-    pub fn write_partitions(&self) {
-        for partition in &self.partitions {
-            let mut f = OpenOptions::new()
-                .write(true)
-                .open(&self.path)
-                .expect("Failed to open file.");
-            f.seek(SeekFrom::Start(u64::from(partition.offset)))
-                .unwrap();
-            let bytes = partition.as_bytes();
-            f.write_all(&bytes).unwrap();
-            f.sync_all();
-        }
     }
 }
