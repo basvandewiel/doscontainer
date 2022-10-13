@@ -35,7 +35,7 @@ impl Disk {
             path: PathBuf::from(path),
             size: size,
             sector_count: size / 512,
-            sectors: Vec::<Sector>::new(),
+            sectors: Vec::<Sector>::with_capacity(size/512),
         }
     }
 
