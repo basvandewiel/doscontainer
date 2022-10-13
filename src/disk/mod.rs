@@ -15,7 +15,7 @@ mod tests;
 pub struct Disk {
     pub(crate) bootcode: [u8; 446],
     pub(crate) geometry: CHS,
-    pub(crate) partitions: Vec<Partition>,
+    partitions: Vec<Partition>,
     pub(crate) path: PathBuf,
     pub(crate) size: usize,
     pub(crate) sector_count: usize,
@@ -35,7 +35,7 @@ impl Disk {
             path: PathBuf::from(path),
             size: size,
             sector_count: size / 512,
-            sectors: Vec::<Sector>::with_capacity(size/512),
+            sectors: Vec::<Sector>::with_capacity(size / 512),
         }
     }
 
@@ -60,6 +60,7 @@ impl Disk {
     /// Push a Partition struct into this Disk's partition table
     pub fn push_partition(&mut self, partition: Partition) {
         self.partitions.push(partition);
+        self.build_bootsector();
     }
 
     /// This function loads a specific binary bootcode for use in the Disk struct
@@ -186,9 +187,20 @@ impl Disk {
 
     /// Commit the in-memory Disk struct to persistent storage.
     pub fn write(&self) {
-        let f = File::create(self.path.as_path()).expect("Failed to create file.");
+        let mut f = File::create(self.path.as_path()).expect("Failed to create file.");
         f.set_len(u64::try_from(self.size).unwrap())
             .expect("Failed to grow file to requested size.");
+        // Collect all bytes prior to writing
+        let mut disk_data = Vec::<u8>::with_capacity(self.size);
+        for sector in &self.sectors {
+            for byte in sector.get_data() {
+                disk_data.push(byte);
+            }
+        }
+        f.write_all(&disk_data)
+            .expect("Error writing Disk to file.");
+        f.sync_all()
+            .expect("Error commiting the Disk to persistent storage.");
     }
 
     /// Generate a valid MBR boot sector and put it into this Disk's sector 0.
@@ -246,7 +258,9 @@ impl Disk {
                     .expect("Failed to seek to requested sector's position."),
             ))
             .unwrap();
-        reader.read_exact(&mut sector_buffer).expect("Failed to read data.");
+        reader
+            .read_exact(&mut sector_buffer)
+            .expect("Failed to read data.");
         let mut new_sector = Sector::new(sector);
         for (index, byte) in sector_buffer.iter().enumerate() {
             new_sector.write_byte(index, *byte);

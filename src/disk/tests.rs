@@ -48,11 +48,10 @@ fn chs_from_bytes() {
 /// This should test disk geometry calculations but doesn't yet.
 #[test]
 fn disk_geometry() {
-    let mut my_disk = Disk::new("test.raw", 5000000);
-    my_disk
-        .partitions
-        .push(Partition::new(&my_disk, 1, 63, 4900000));
+    let mut my_disk = Disk::new("asdf4qfawfd23rwfdasdf23rrgasdf.raw", 5000000);
+    my_disk.push_partition(Partition::new(&my_disk, 1, 63, 4900000));
     my_disk.write();
+    fs::remove_file("asdf4qfawfd23rwfdasdf23rrgasdf.raw").unwrap();
 }
 
 /// Test failure mode for creating a disk that is (much) too big.
