@@ -103,4 +103,14 @@ impl Partition {
         }
         return bytes;
     }
+    /// Generate a Partition struct from an MBR entry
+    pub fn from_bytes(entry: [u8; 16]) -> Partition {
+        Partition {
+            offset: 0x1be,
+            flag_byte: entry[0],
+            partition_type: 0x06,
+            first_lba: entry[8],
+            boot_record: VBR::new(25),
+        }
+    }
 }

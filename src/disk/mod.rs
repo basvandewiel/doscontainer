@@ -117,6 +117,11 @@ impl Disk {
             .expect("Failed to read bootcode from file.");
         loaded_disk.bootcode = buffer;
 
+        f.seek(SeekFrom::Start(0x1be)).unwrap();
+        let mut partition = [0u8; 16];
+
+        loaded_disk.push_partition(Partition::from_bytes(partition));
+
         return loaded_disk;
     }
 
