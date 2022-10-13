@@ -1,5 +1,5 @@
-use crate::chs::CHS;
 use crate::disk::Disk;
+use crate::disk::CHS;
 use crate::partition::Partition;
 use crate::sector::Sector;
 use std::fs;
