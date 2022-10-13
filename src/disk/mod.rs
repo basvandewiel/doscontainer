@@ -31,7 +31,7 @@ impl Disk {
         Disk {
             bootcode: Disk::load_bootcode("DOS622"),
             geometry: Disk::calculate_geometry(size),
-            partitions: Vec::<Partition>::new(),
+            partitions: Vec::<Partition>::with_capacity(4),
             path: PathBuf::from(path),
             size: size,
             sector_count: size / 512,
@@ -44,7 +44,7 @@ impl Disk {
         Disk {
             bootcode: Disk::load_bootcode("EMPTY"),
             geometry: CHS::empty(),
-            partitions: Vec::<Partition>::new(),
+            partitions: Vec::<Partition>::with_capacity(4),
             path: PathBuf::from(""),
             size: 0,
             sector_count: 0,
