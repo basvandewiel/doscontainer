@@ -201,6 +201,7 @@ impl Disk {
             for byte in sector.get_data() {
                 disk_data.push(byte);
             }
+            sector.mark_clean();
         }
         f.write_all(&disk_data)
             .expect("Error writing Disk to file.");
