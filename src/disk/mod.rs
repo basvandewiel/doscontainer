@@ -1,5 +1,4 @@
 use crate::chs::CHS;
-use crate::fs::vbr::VBR;
 use crate::partition::Partition;
 use crate::sector::Sector;
 use std::fs::File;
@@ -247,7 +246,7 @@ impl Disk {
                     .expect("Failed to seek to requested sector's position."),
             ))
             .unwrap();
-        reader.read_exact(&mut sector_buffer);
+        reader.read_exact(&mut sector_buffer).expect("Failed to read data.");
         let mut new_sector = Sector::new(sector);
         for (index, byte) in sector_buffer.iter().enumerate() {
             new_sector.write_byte(index, *byte);
