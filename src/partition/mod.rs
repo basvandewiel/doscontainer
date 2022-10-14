@@ -105,12 +105,38 @@ impl Partition {
     }
     /// Generate a Partition struct from an MBR entry
     pub fn from_bytes(entry: [u8; 16]) -> Partition {
+        let sector_count = u32::from_le_bytes(
+            entry[12..15]
+                .try_into()
+                .expect("Failed to convert bytes to sector count."),
+        );
+
+        // We need a fake Disk struct to use the geometry functions
+        let disk_size = usize::try_from(sector_count * 512).unwrap();
+        let disk = Disk::new("bogus_value", disk_size);
+        let mut end_chs = disk.lba_to_chs(sector_count - 63);
+
+        // These modifications are an attempt to keep the partition within proper bounds for FDISK.
+        // [TODO] Duplication of code! Figure out proper cylinder alignment algorithm and extract this.
+        end_chs.head = 15;
+        end_chs.sector = 63;
+        end_chs.cylinder -= 2;
+
         Partition {
             offset: 0x1be,
             flag_byte: entry[0],
+            last_sector: end_chs,
+            first_sector: disk.lba_to_chs(63),
             partition_type: 0x06,
-            first_lba: entry[8],
-            boot_record: VBR::new(25),
+            first_lba: u32::from_le_bytes(
+                entry[8..11]
+                    .try_into()
+                    .expect("Failed to convert bytes to LBA value."),
+            ),
+            sector_count: sector_count,
+            boot_record: VBR::new(sector_count),
+            last_lba: sector_count + 63,
+            FAT: FAT::new(sector_count),
         }
     }
 }

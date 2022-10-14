@@ -118,7 +118,7 @@ impl Disk {
         loaded_disk.bootcode = buffer;
 
         f.seek(SeekFrom::Start(0x1be)).unwrap();
-        let mut partition = [0u8; 16];
+        let partition = [0u8; 16];
 
         loaded_disk.push_partition(Partition::from_bytes(partition));
 
@@ -191,13 +191,13 @@ impl Disk {
     }
 
     /// Commit the in-memory Disk struct to persistent storage.
-    pub fn write(&self) {
+    pub fn write(&mut self) {
         let mut f = File::create(self.path.as_path()).expect("Failed to create file.");
         f.set_len(u64::try_from(self.size).unwrap())
             .expect("Failed to grow file to requested size.");
         // Collect all bytes prior to writing
         let mut disk_data = Vec::<u8>::with_capacity(self.size);
-        for sector in &self.sectors {
+        for sector in &mut self.sectors {
             for byte in sector.get_data() {
                 disk_data.push(byte);
             }

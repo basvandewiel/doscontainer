@@ -130,7 +130,7 @@ fn read_valid_sector() {
 #[test]
 #[should_panic]
 fn read_sector_out_of_bounds() {
-    let my_disk = Disk::new(
+    let mut my_disk = Disk::new(
         "ff665c8ce7f5e1585ba2dcdc4109be56ef82dd0fccb5038449cc4fcf178345c1.raw",
         50000000,
     );
