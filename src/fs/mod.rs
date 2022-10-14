@@ -127,9 +127,6 @@ impl File {
     }
 }
 
-#[derive(Debug)]
-pub struct Directory {}
-
 impl FAT {
     /// Instantiate a new FAT struct based on sector count
     pub fn new(sector_count: u32) -> Self {
@@ -173,6 +170,8 @@ impl FAT {
             required_clusters = num::integer::div_ceil(filesize, self.cluster_size) + 1;
         }
         let mut free_clusters = Vec::<u16>::new();
+
+        // Loop over the clusters in this FAT to find any that are marked as 0x0000 (unallocated).
         for (i, item) in self
             .clusters
             .iter()
