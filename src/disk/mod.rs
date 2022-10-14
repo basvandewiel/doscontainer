@@ -97,7 +97,7 @@ impl Disk {
 
         // Test if size is a multiple of 512, making it sector-aligned
         if (loaded_disk.size / 512) * 512 != loaded_disk.size {
-            panic!("Disk image is not sector aligned.");
+            panic!("Disk image size must be sector aligned (multiple of 512 bytes).");
         }
 
         loaded_disk.sector_count = loaded_disk.size / 512;
@@ -111,15 +111,21 @@ impl Disk {
             loaded_disk.push_sector(sector);
         }
 
-        // Load existing bootcode from file
+        // Load existing bootcode from file. We have it in Sector 0 but this
+        // remnant of the previous implementation is simpler for now.
         let mut buffer = [0; 446];
         f.read_exact(&mut buffer)
             .expect("Failed to read bootcode from file.");
         loaded_disk.bootcode = buffer;
 
+        // Currently only support 1 partition, which lives at offset 0x1BE
         f.seek(SeekFrom::Start(0x1be)).unwrap();
-        let partition = [0u8; 16];
-
+        let mut partition = [0u8; 16];
+        let mut reader = BufReader::new(f);
+        reader.seek(SeekFrom::Start(0x1be)).unwrap();
+        reader
+            .read_exact(&mut partition)
+            .expect("Failed to read partition entry.");
         loaded_disk.push_partition(Partition::from_bytes(partition));
 
         return loaded_disk;
