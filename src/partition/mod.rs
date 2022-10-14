@@ -1,7 +1,7 @@
 use crate::chs::*;
 use crate::disk::*;
 use crate::fs::vbr::VBR;
-use crate::fs::FAT;
+use crate::fs::fat::FAT;
 
 /// Custom type for a Partition
 #[derive(Debug)]

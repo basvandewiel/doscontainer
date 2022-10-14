@@ -1,6 +1,6 @@
 use crate::fs::File;
 use crate::fs::FileAttributes;
-use crate::fs::FAT;
+use crate::fs::fat::FAT;
 use crate::fs::VBR;
 
 #[test]
