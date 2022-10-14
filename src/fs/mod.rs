@@ -53,7 +53,7 @@ impl FileAttributes {
 pub struct File {
     name: String,
     data: Vec<u8>,
-    clusters: Vec<u16>,
+    clusters: Vec<Cluster>,
     attributes: FileAttributes,
 }
 
@@ -62,7 +62,7 @@ impl File {
         File {
             name: name,
             data: data,
-            clusters: Vec::<u16>::new(),
+            clusters: Vec::<Cluster>::new(),
             attributes: FileAttributes::default(),
         }
     }

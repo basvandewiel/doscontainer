@@ -31,9 +31,12 @@ impl FAT {
 
     /// No idea why this is there yet. Cluster 0 contains this when formatted
     /// using MS-DOS so I'm replicating it here.
-    fn initialize_fat(cluster_count: usize) -> Vec<u16> {
-        let mut clusters = vec![0; cluster_count];
-        clusters[0] = 0xfff8;
+    fn initialize_fat(cluster_count: usize) -> Vec<Cluster> {
+        let mut clusters = Vec::<Cluster>::with_capacity(cluster_count);
+        for item in 0..cluster_count {
+            clusters.push(Cluster::new(item as u16));
+        }
+        clusters[0] = Cluster::new(0xfff8);
         clusters
     }
 
@@ -46,7 +49,7 @@ impl FAT {
     /// Return a list of free clusters for use by the given File
     /// We're regenerating the whole disk with every write, so we always get
     /// perfect defragmentation and race conditions don't exit.
-    pub fn allocate_clusters(&self, file: &File) -> Vec<u16> {
+    pub fn allocate_clusters(&self, file: &File) -> Vec<Cluster> {
         let filesize: usize = file.get_size(); // Size of file in bytes
         let mut required_clusters = 0usize;
         if filesize < self.cluster_size {
@@ -54,7 +57,7 @@ impl FAT {
         } else {
             required_clusters = num::integer::div_ceil(filesize, self.cluster_size) + 1;
         }
-        let mut free_clusters = Vec::<u16>::new();
+        let mut free_clusters = Vec::<Cluster>::new();
 
         // Loop over the clusters in this FAT to find any that are marked as 0x0000 (unallocated).
         for (i, item) in self
@@ -63,10 +66,22 @@ impl FAT {
             .enumerate()
             .take(required_clusters.try_into().unwrap())
         {
-            if *item == 0x0000 {
-                free_clusters.push(i as u16);
+            if item.get_value() == 0 {
+                free_clusters.push(Cluster::new(i as u16));
             }
         }
         free_clusters
+    }
+
+    pub fn get_cluster_count(&self) -> u32 {
+        self.cluster_count
+    }
+
+    pub fn get_allocated_cluster_count(&self) -> usize {
+        self.clusters.len()
+    }
+
+    pub fn get_cluster_size(&self) -> usize {
+        self.cluster_size
     }
 }
