@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct VBR {
     jump_bytes: [u8; 3],
     oem_name: [u8; 8],

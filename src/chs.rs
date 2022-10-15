@@ -1,7 +1,7 @@
 use bitvec::prelude::*;
 
 /// Custom type for Cylinder/Head/Sector geometry
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CHS {
     pub(crate) cylinder: u16,
     pub(crate) head: u8,

@@ -2,7 +2,7 @@ use crate::fs::Cluster;
 use crate::fs::File;
 use crate::fs::VBR;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct FAT {
     files: Vec<File>,
     sector_count: u32,

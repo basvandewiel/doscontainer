@@ -1,10 +1,12 @@
 use crate::chs::*;
 use crate::disk::*;
-use crate::fs::vbr::VBR;
 use crate::fs::fat::FAT;
+use crate::fs::vbr::VBR;
+
+mod tests;
 
 /// Custom type for a Partition
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Partition {
     pub(crate) offset: u16,
     pub(crate) flag_byte: u8,
@@ -52,7 +54,9 @@ impl Partition {
         let mut end_chs = disk.lba_to_chs(requested_sectors);
         end_chs.head = 15;
         end_chs.sector = 63;
-        end_chs.cylinder -= 2;
+        if end_chs.cylinder >= 3 {
+            end_chs.cylinder -= 2;
+        }
         requested_sectors = disk.chs_to_lba(&end_chs);
 
         // Compose the Partition struct and return it.
@@ -106,21 +110,16 @@ impl Partition {
     /// Generate a Partition struct from an MBR entry
     pub fn from_bytes(entry: [u8; 16]) -> Partition {
         let sector_count = u32::from_le_bytes(
-            entry[12..15]
+            entry[12..16]
                 .try_into()
                 .expect("Failed to convert bytes to sector count."),
         );
 
         // We need a fake Disk struct to use the geometry functions
-        let disk_size = usize::try_from(sector_count * 512).unwrap();
+        let disk_size =
+            usize::try_from(sector_count * 512).expect("Failed get disk size as usize.");
         let disk = Disk::new("bogus_value", disk_size);
         let mut end_chs = disk.lba_to_chs(sector_count - 63);
-
-        // These modifications are an attempt to keep the partition within proper bounds for FDISK.
-        // [TODO] Duplication of code! Figure out proper cylinder alignment algorithm and extract this.
-        end_chs.head = 15;
-        end_chs.sector = 63;
-        end_chs.cylinder -= 2;
 
         Partition {
             offset: 0x1be,
@@ -129,13 +128,13 @@ impl Partition {
             first_sector: disk.lba_to_chs(63),
             partition_type: 0x06,
             first_lba: u32::from_le_bytes(
-                entry[8..11]
+                entry[8..12]
                     .try_into()
                     .expect("Failed to convert bytes to LBA value."),
             ),
             sector_count: sector_count,
             boot_record: VBR::new(sector_count),
-            last_lba: sector_count + 63,
+            last_lba: sector_count - 63,
             FAT: FAT::new(sector_count),
         }
     }
