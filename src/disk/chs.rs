@@ -97,4 +97,17 @@ impl CHS {
         chs.cylinder = chs_cylinders.load_le::<u16>();
         return chs;
     }
+
+    /// Instantiate a CHS address from an LBA and an existing geometry
+    pub fn from_lba(geometry: &CHS, lba: u32) -> CHS {
+        let mut chs = CHS::empty();
+        let sectors_per_track = u32::from(geometry.sector);
+        let heads_per_cylinder = u32::from(geometry.head);
+        chs.cylinder = u16::try_from(lba / (heads_per_cylinder * sectors_per_track))
+            .expect("Too many cylinders.");
+        let temp = lba % (heads_per_cylinder * sectors_per_track);
+        chs.head = u8::try_from(temp / sectors_per_track).expect("Too many heads.");
+        chs.sector = u8::try_from(temp & sectors_per_track + 1).expect("Too many sectors.");
+        chs
+    }
 }

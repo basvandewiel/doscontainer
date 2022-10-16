@@ -1,5 +1,3 @@
-pub mod chs;
-
 /// The disk module handles the virtual disk image file itself.
 pub mod disk;
 

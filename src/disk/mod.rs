@@ -1,4 +1,4 @@
-use crate::chs::CHS;
+use crate::disk::chs::CHS;
 use crate::partition::Partition;
 use crate::sector::Sector;
 use std::fs::File;
@@ -6,6 +6,7 @@ use std::fs::OpenOptions;
 use std::io::*;
 use std::path::PathBuf;
 
+pub mod chs;
 mod tests;
 
 /// A Disk is the holding structure for a collection of Sectors. It also
@@ -147,7 +148,7 @@ impl Disk {
 
     /// Convert an LBA sector address to a CHS-tuple on a specific disk.
     /// The disk is needed because the calculation depends on the geometry of the underlying disk.
-    pub fn lba_to_chs(&self, lba: u32) -> CHS {
+/*    pub fn lba_to_chs(&self, lba: u32) -> CHS {
         let mut chs = CHS::empty();
         let sectors_per_track = u32::from(self.geometry.sector);
         let heads_per_cylinder = u32::from(self.geometry.head);
@@ -157,6 +158,17 @@ impl Disk {
             u8::try_from((lba / sectors_per_track) % heads_per_cylinder).expect("Too many heads!");
         chs.sector = u8::try_from((lba % sectors_per_track) + 1).expect("Too many sectors!");
         return chs;
+    } */
+
+    pub fn lba_to_chs(&self, lba: u32) -> CHS {
+        let mut chs = CHS::empty();
+        let sectors_per_track = u32::from(self.geometry.sector);
+        let heads_per_cylinder = u32::from(self.geometry.head);
+        chs.cylinder = u16::try_from( lba / (heads_per_cylinder * sectors_per_track)).expect("Too many cylinders.");
+        let temp = lba % (heads_per_cylinder * sectors_per_track);
+        chs.head = u8::try_from(temp / sectors_per_track).expect("Too many heads.");
+        chs.sector = u8::try_from(temp & sectors_per_track + 1).expect("Too many sectors.");
+        chs
     }
 
     /// Convert a CHS-tuple to an LBA sector address.
@@ -170,6 +182,7 @@ impl Disk {
         let lba: u32 = (C * TH * TS) + (H * TS) + (S - 1);
         return lba;
     }
+
 
     /// Bochs geomtry algorithm for the 'no translation' case.
     /// Disks that remain within the original int13h limit of 528MB.

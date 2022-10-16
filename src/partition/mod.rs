@@ -1,4 +1,4 @@
-use crate::chs::*;
+use crate::disk::chs::*;
 use crate::disk::*;
 use crate::fs::fat::FAT;
 use crate::fs::vbr::VBR;
@@ -51,7 +51,7 @@ impl Partition {
 
         // Cylinder-align the partition's end. Try to get as close to FDISK.EXE as we can.
         // Update requested_sectors with the aligned value fom the CHS.
-        let mut end_chs = disk.lba_to_chs(requested_sectors);
+        let mut end_chs = CHS::from_lba(&disk.geometry, requested_sectors);
         end_chs.head = 15;
         end_chs.sector = 63;
         if end_chs.cylinder >= 3 {
@@ -63,7 +63,7 @@ impl Partition {
         let my_partition = Partition {
             offset: 0x1be,
             flag_byte: 0x80,
-            first_sector: disk.lba_to_chs(start_sector),
+            first_sector: CHS::from_lba(&disk.geometry, start_sector),
             partition_type: 0x06,
             last_sector: end_chs,
             first_lba: start_sector,
@@ -119,13 +119,13 @@ impl Partition {
         let disk_size =
             usize::try_from(sector_count * 512).expect("Failed get disk size as usize.");
         let disk = Disk::new("bogus_value", disk_size);
-        let mut end_chs = disk.lba_to_chs(sector_count - 63);
+        let end_chs = CHS::from_lba(&disk.geometry, sector_count - 63);
 
         Partition {
             offset: 0x1be,
             flag_byte: entry[0],
             last_sector: end_chs,
-            first_sector: disk.lba_to_chs(63),
+            first_sector: CHS::from_lba(&disk.geometry, 63),
             partition_type: 0x06,
             first_lba: u32::from_le_bytes(
                 entry[8..12]
