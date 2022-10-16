@@ -9,7 +9,16 @@ pub struct CHS {
 }
 
 impl CHS {
-    /// Instantiate an empty CHS tuple
+    /// Instantiate a new CHS struct
+    pub fn new(cylinder: u16, head: u8, sector: u8) -> CHS {
+        CHS {
+            cylinder: cylinder,
+            head: head,
+            sector: sector,
+        }
+    }
+
+    /// Instantiate an empty CHS struct
     pub fn empty() -> CHS {
         CHS {
             cylinder: 0,
@@ -76,7 +85,7 @@ impl CHS {
 
         // The sectors number is only 6 bits long, so pad it with zeroes to bring it up to 8 bits.
         let mut chs_sectors: BitVec<u8, bitvec::order::Msb0> = BitVec::new();
-        chs_sectors.extend_from_bitslice(&chs_bits[9..=15]);
+        chs_sectors.extend_from_bitslice(&chs_bits[9..16]);
 
         // The cylinders value is 10 bits long but a u16 has room for 16, so pad with zeroes.
         let mut chs_cylinders: BitVec<u16, bitvec::order::Msb0> = BitVec::new();
@@ -107,7 +116,7 @@ impl CHS {
             .expect("Too many cylinders.");
         let temp = lba % (heads_per_cylinder * sectors_per_track);
         chs.head = u8::try_from(temp / sectors_per_track).expect("Too many heads.");
-        chs.sector = u8::try_from(temp & sectors_per_track + 1).expect("Too many sectors.");
+        chs.sector = u8::try_from(temp % sectors_per_track + 1).expect("Too many sectors.");
         chs
     }
 }

@@ -35,7 +35,7 @@ impl Partition {
         // Special case: 0 grows the partition to fill the entire disk
         if requested_sectors == 0 {
             let disk_sectors = disk.size / sector_size;
-            let free_sectors = disk_sectors - 64;
+            let free_sectors = disk_sectors - 63;
             requested_sectors = u32::try_from(free_sectors).unwrap();
         }
 
@@ -53,10 +53,10 @@ impl Partition {
         // Update requested_sectors with the aligned value fom the CHS.
         let mut end_chs = CHS::from_lba(&disk.geometry, requested_sectors);
         end_chs.head = 15;
-        end_chs.sector = 63;
-        if end_chs.cylinder >= 3 {
-            end_chs.cylinder -= 2;
-        }
+        //        end_chs.sector = 63;
+        //        if end_chs.cylinder >= 3 {
+        //            end_chs.cylinder -= 2;
+        //        }
         requested_sectors = disk.chs_to_lba(&end_chs);
 
         // Compose the Partition struct and return it.
@@ -105,6 +105,7 @@ impl Partition {
         for byte in self.sector_count.to_le_bytes() {
             bytes.push(byte);
         }
+        println!("Reconstituted bytes {:?}", bytes);
         return bytes;
     }
     /// Generate a Partition struct from an MBR entry
@@ -119,7 +120,7 @@ impl Partition {
         let disk_size =
             usize::try_from(sector_count * 512).expect("Failed get disk size as usize.");
         let disk = Disk::new("bogus_value", disk_size);
-        let end_chs = CHS::from_lba(&disk.geometry, sector_count - 63);
+        let end_chs = CHS::from_lba(&disk.geometry, sector_count);
 
         Partition {
             offset: 0x1be,

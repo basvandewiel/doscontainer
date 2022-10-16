@@ -5,6 +5,14 @@ use crate::sector::Sector;
 use std::fs;
 use std::path::PathBuf;
 
+/// Calculate a CHS Value
+#[test]
+fn calculate_chs() {
+    let my_disk = Disk::new("fake_test_disk.raw", 50000000);
+    let chs = CHS::new(96, 16, 63);
+    assert_eq!(my_disk.geometry, chs);
+}
+
 // Create a partition
 #[test]
 fn create_partition() {
@@ -17,10 +25,10 @@ fn create_partition() {
     assert_eq!(my_partition.first_sector.head, 1);
     assert_eq!(my_partition.first_sector.sector, 1);
     assert_eq!(my_partition.partition_type, 6);
-    assert_eq!(my_partition.last_sector.cylinder, 99);
+    assert_eq!(my_partition.last_sector.cylinder, 94);
     assert_eq!(my_partition.last_sector.head, 15);
-    assert_eq!(my_partition.last_sector.sector, 63);
-    assert_eq!(my_partition.sector_count, 94562);
+    assert_eq!(my_partition.last_sector.sector, 7);
+    assert_eq!(my_partition.sector_count, 95703);
 }
 
 // Generate the correct set of bytes from a CHS struct
@@ -45,13 +53,12 @@ fn chs_from_bytes() {
     assert_eq!(chs.cylinder, 723);
 }
 
-/// This should test disk geometry calculations but doesn't yet.
+/// Geometry calculation identical to Bochs
 #[test]
 fn disk_geometry() {
-    let mut my_disk = Disk::new("asdf4qfawfd23rwfdasdf23rrgasdf.raw", 5000000);
-    my_disk.push_partition(Partition::new(&my_disk, 1, 63, 4900000));
-    my_disk.write();
-    fs::remove_file("asdf4qfawfd23rwfdasdf23rrgasdf.raw").unwrap();
+    let mut disk = Disk::new("asdf4qfawfd23rwfdasdf23rrgasdf.raw", 52125696);
+    let reference = CHS::new(101, 16, 63);
+    assert_eq!(disk.geometry, reference);
 }
 
 /// Test failure mode for creating a disk that is (much) too big.
@@ -165,7 +172,7 @@ fn disk_build_bootsector() {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 1, 1, 0, 6, 15, 63, 101, 63, 0, 0, 0, 196, 120, 1,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 1, 1, 0, 6, 15, 7, 96, 63, 0, 0, 0, 183, 125, 1,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 85, 170,
     ];
