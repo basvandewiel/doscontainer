@@ -21,3 +21,8 @@ Partition
   sector_count: 96705,
 ```
 
+The actual on-disk partition table entry must be:
+
+```
+80 01 01 00 06 0F 3F 5F 3F 00 00 00 C1 79 01 00
+```
