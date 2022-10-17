@@ -17,7 +17,7 @@ Partition
   first_lba: 63, 
   first_sector: CHS { cylinder: 0, head: 1, sector: 1 }, 
   partition_type: 6, 
-  last_sector: CHS { cylinder: 95, head: 15, sector: 1 }, 
+  last_sector: CHS { cylinder: 95, head: 15, sector: 15 }, 
   sector_count: 96705,
 ```
 
