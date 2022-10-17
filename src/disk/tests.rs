@@ -15,9 +15,9 @@ fn calculate_chs() {
 
 // Create a partition
 #[test]
-fn create_partition() {
+fn create_50mb_partition() {
     let my_disk = Disk::new("test.raw", 50000000);
-    let my_partition = Partition::new(&my_disk, 1, 63, 49000000);
+    let my_partition = Partition::new(&my_disk, 1, 63, 0);
     assert_eq!(my_partition.offset, 446);
     assert_eq!(my_partition.flag_byte, 128);
     assert_eq!(my_partition.first_lba, 63);
@@ -25,10 +25,17 @@ fn create_partition() {
     assert_eq!(my_partition.first_sector.head, 1);
     assert_eq!(my_partition.first_sector.sector, 1);
     assert_eq!(my_partition.partition_type, 6);
-    assert_eq!(my_partition.last_sector.cylinder, 94);
+    assert_eq!(my_partition.last_sector.cylinder, 95);
     assert_eq!(my_partition.last_sector.head, 15);
-    assert_eq!(my_partition.last_sector.sector, 7);
-    assert_eq!(my_partition.sector_count, 95703);
+    assert_eq!(my_partition.last_sector.sector, 63);
+    assert_eq!(my_partition.sector_count, 96705);
+}
+
+// [TODO] Fill in assertions when the actual MS-DOS values are known
+#[test]
+fn create_100mb_partition() {
+    let my_disk = Disk::new("test.raw", 100000000);
+    let my_partition = Partition::new(&my_disk, 1, 63, 0);
 }
 
 // Generate the correct set of bytes from a CHS struct
@@ -172,7 +179,7 @@ fn disk_build_bootsector() {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 1, 1, 0, 6, 15, 7, 96, 63, 0, 0, 0, 183, 125, 1,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 1, 1, 0, 6, 15, 63, 95, 63, 0, 0, 0, 120, 125, 1,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 85, 170,
     ];

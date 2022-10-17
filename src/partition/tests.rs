@@ -3,7 +3,7 @@ use crate::partition::Partition;
 
 #[test]
 fn partition_roundtrip() {
-    let mut disk = Disk::new("bogus_test_file.raw", 42000000);
+    let mut disk = Disk::new("bogus_test_file.raw", 50000000);
     let partition = Partition::new(&disk, 1, 63, 0);
     let bytes = partition.as_bytes();
     let mut bytes_array = [0u8; 16];
