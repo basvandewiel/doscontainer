@@ -1,4 +1,4 @@
-use crate::chs::CHS;
+use crate::disk::chs::CHS;
 use crate::partition::Partition;
 use crate::sector::Sector;
 use std::fs::File;
@@ -6,6 +6,7 @@ use std::fs::OpenOptions;
 use std::io::*;
 use std::path::PathBuf;
 
+pub mod chs;
 mod tests;
 
 /// A Disk is the holding structure for a collection of Sectors. It also
@@ -152,11 +153,11 @@ impl Disk {
         let sectors_per_track = u32::from(self.geometry.sector);
         let heads_per_cylinder = u32::from(self.geometry.head);
         chs.cylinder = u16::try_from(lba / (heads_per_cylinder * sectors_per_track))
-            .expect("Too many cylinders!");
-        chs.head =
-            u8::try_from((lba / sectors_per_track) % heads_per_cylinder).expect("Too many heads!");
-        chs.sector = u8::try_from((lba % sectors_per_track) + 1).expect("Too many sectors!");
-        return chs;
+            .expect("Too many cylinders.");
+        let temp = lba % (heads_per_cylinder * sectors_per_track);
+        chs.head = u8::try_from(temp / sectors_per_track).expect("Too many heads.");
+        chs.sector = u8::try_from(temp & sectors_per_track + 1).expect("Too many sectors.");
+        chs
     }
 
     /// Convert a CHS-tuple to an LBA sector address.
@@ -176,7 +177,7 @@ impl Disk {
     fn geometry_none(size: usize) -> CHS {
         let sector_count = size / 512;
         let mut geom = CHS::empty();
-        let heads_range = 1..=15;
+        let heads_range = 1..=16;
         for hpc in heads_range.rev() {
             let cylinders = sector_count / (hpc * 63);
             geom.cylinder = u16::try_from(cylinders).expect("Too many cylinders!");

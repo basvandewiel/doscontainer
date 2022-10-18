@@ -1,10 +1,12 @@
-use crate::chs::*;
+use crate::disk::chs::*;
 use crate::disk::*;
+use crate::fs::fat::FAT;
 use crate::fs::vbr::VBR;
-use crate::fs::FAT;
+
+mod tests;
 
 /// Custom type for a Partition
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Partition {
     pub(crate) offset: u16,
     pub(crate) flag_byte: u8,
@@ -27,48 +29,41 @@ impl Partition {
         partition_bytes: u64,
     ) -> Partition {
         let sector_size: usize = 512;
-        let mut requested_sectors: u32 =
-            u32::try_from(partition_bytes).unwrap() / u32::try_from(sector_size).unwrap();
-
-        // Special case: 0 grows the partition to fill the entire disk
-        if requested_sectors == 0 {
-            let disk_sectors = disk.size / sector_size;
-            let free_sectors = disk_sectors - 64;
-            requested_sectors = u32::try_from(free_sectors).unwrap();
-        }
-
-        // MBR layout doesn't support more than 4 primary partitions. Extended partitioning is out of scope (for now).
-        if partition_number > 4 || partition_number == 0 {
-            panic!("Can't have more than 4 partitions, starting at offset 1. You tried to create one at offset {}", partition_number);
-        }
 
         // Can't have things begin before sector 63. Theoretically, sure, but MS-DOS doesn't do it that way.
         if start_sector < 63 {
             start_sector = 63;
         }
 
-        // Cylinder-align the partition's end. Try to get as close to FDISK.EXE as we can.
-        // Update requested_sectors with the aligned value fom the CHS.
-        let mut end_chs = disk.lba_to_chs(requested_sectors);
-        end_chs.head = 15;
-        end_chs.sector = 63;
-        end_chs.cylinder -= 2;
-        requested_sectors = disk.chs_to_lba(&end_chs);
+        let mut requested_sectors: u32 =
+            u32::try_from(partition_bytes).unwrap() / u32::try_from(sector_size).unwrap();
+
+        let last_chs = CHS::new(&disk.geometry.cylinder - 1, disk.geometry.head - 1, 63);
+
+        let last_lba = disk.chs_to_lba(&last_chs);
+
+        if partition_bytes == 0 {
+            requested_sectors = last_lba - 62;
+        }
+
+        // MBR layout doesn't support more than 4 primary partitions. Extended partitioning is out of scope (for now).
+        if partition_number > 4 || partition_number == 0 {
+            panic!("Can't have more than 4 partitions, starting at offset 1. You tried to create one at the wrong place.");
+        }
 
         // Compose the Partition struct and return it.
         let my_partition = Partition {
             offset: 0x1be,
             flag_byte: 0x80,
-            first_sector: disk.lba_to_chs(start_sector),
+            first_sector: CHS::from_lba(&disk.geometry, start_sector),
             partition_type: 0x06,
-            last_sector: end_chs,
+            last_sector: last_chs,
             first_lba: start_sector,
-            last_lba: requested_sectors - start_sector,
+            last_lba: last_lba,
             sector_count: requested_sectors,
             boot_record: VBR::new(requested_sectors),
             FAT: FAT::new(requested_sectors),
         };
-
         return my_partition;
     }
 
@@ -106,36 +101,43 @@ impl Partition {
     /// Generate a Partition struct from an MBR entry
     pub fn from_bytes(entry: [u8; 16]) -> Partition {
         let sector_count = u32::from_le_bytes(
-            entry[12..15]
+            entry[12..16]
                 .try_into()
                 .expect("Failed to convert bytes to sector count."),
         );
 
         // We need a fake Disk struct to use the geometry functions
-        let disk_size = usize::try_from(sector_count * 512).unwrap();
+        let disk_size =
+            usize::try_from(sector_count * 512).expect("Failed get disk size as usize.");
         let disk = Disk::new("bogus_value", disk_size);
-        let mut end_chs = disk.lba_to_chs(sector_count - 63);
+        let end_chs = CHS::from_lba(&disk.geometry, sector_count);
 
-        // These modifications are an attempt to keep the partition within proper bounds for FDISK.
-        // [TODO] Duplication of code! Figure out proper cylinder alignment algorithm and extract this.
-        end_chs.head = 15;
-        end_chs.sector = 63;
-        end_chs.cylinder -= 2;
+        let mut first_chs_bytes = [0u8; 3];
+        first_chs_bytes[0] = entry[1];
+        first_chs_bytes[1] = entry[2];
+        first_chs_bytes[2] = entry[3];
+
+        let mut last_chs_bytes = [0u8; 3];
+        last_chs_bytes[0] = entry[5];
+        last_chs_bytes[1] = entry[6];
+        last_chs_bytes[2] = entry[7];
+
+        let first_lba = u32::from_le_bytes(
+            entry[8..12]
+                .try_into()
+                .expect("Failed to convert bytes into LBA."),
+        );
 
         Partition {
             offset: 0x1be,
             flag_byte: entry[0],
-            last_sector: end_chs,
-            first_sector: disk.lba_to_chs(63),
+            last_sector: CHS::from_bytes(last_chs_bytes),
+            first_sector: CHS::from_bytes(first_chs_bytes),
             partition_type: 0x06,
-            first_lba: u32::from_le_bytes(
-                entry[8..11]
-                    .try_into()
-                    .expect("Failed to convert bytes to LBA value."),
-            ),
+            first_lba: first_lba,
             sector_count: sector_count,
             boot_record: VBR::new(sector_count),
-            last_lba: sector_count + 63,
+            last_lba: sector_count + (first_lba - 1),
             FAT: FAT::new(sector_count),
         }
     }
