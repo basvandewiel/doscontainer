@@ -7,6 +7,8 @@ use std::io::*;
 use std::path::PathBuf;
 
 pub mod chs;
+
+#[cfg(test)]
 mod tests;
 
 /// A Disk is the holding structure for a collection of Sectors. It also

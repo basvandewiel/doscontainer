@@ -3,6 +3,7 @@ use crate::fs::vbr::VBR;
 use crate::fs::cluster::Cluster;
 use bitvec::prelude::*;
 
+#[cfg(test)]
 mod tests;
 pub mod vbr;
 mod cluster;

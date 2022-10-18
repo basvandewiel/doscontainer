@@ -1,5 +1,3 @@
-use crate::disk::Disk;
-
 /// Data structure for individual sectors. A sector holds 512 bytes of data and is
 /// the smallest unit of data a Disk can work with. The data is kept in a Vec<u8> internally.
 /// The position of the sector is the LBA address and we keep a 'dirty' flag to see if the

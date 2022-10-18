@@ -3,9 +3,10 @@ use crate::disk::*;
 use crate::fs::fat::FAT;
 use crate::fs::vbr::VBR;
 
+#[cfg(test)]
 mod tests;
 
-/// Custom type for a Partition
+#[allow(non_snake_case)]
 #[derive(Debug, PartialEq)]
 pub struct Partition {
     pub(crate) offset: u16,
@@ -105,12 +106,6 @@ impl Partition {
                 .try_into()
                 .expect("Failed to convert bytes to sector count."),
         );
-
-        // We need a fake Disk struct to use the geometry functions
-        let disk_size =
-            usize::try_from(sector_count * 512).expect("Failed get disk size as usize.");
-        let disk = Disk::new("bogus_value", disk_size);
-        let end_chs = CHS::from_lba(&disk.geometry, sector_count);
 
         let mut first_chs_bytes = [0u8; 3];
         first_chs_bytes[0] = entry[1];
