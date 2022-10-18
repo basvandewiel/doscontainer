@@ -36,6 +36,17 @@ fn create_50mb_partition() {
 fn create_100mb_partition() {
     let my_disk = Disk::new("test.raw", 100000000);
     let my_partition = Partition::new(&my_disk, 1, 63, 0);
+    assert_eq!(my_partition.offset, 446);
+    assert_eq!(my_partition.flag_byte, 128);
+    assert_eq!(my_partition.first_lba, 63);
+    assert_eq!(my_partition.first_sector.cylinder, 0);
+    assert_eq!(my_partition.first_sector.head, 1);
+    assert_eq!(my_partition.first_sector.sector, 1);
+    assert_eq!(my_partition.partition_type, 6);
+    assert_eq!(my_partition.last_sector.cylinder, 192);
+    assert_eq!(my_partition.last_sector.head, 15);
+    assert_eq!(my_partition.last_sector.sector, 63);
+    assert_eq!(my_partition.sector_count, 194481);
 }
 
 // Generate the correct set of bytes from a CHS struct

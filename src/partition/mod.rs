@@ -122,20 +122,22 @@ impl Partition {
         last_chs_bytes[1] = entry[6];
         last_chs_bytes[2] = entry[7];
 
+        let first_lba = u32::from_le_bytes(
+            entry[8..12]
+                .try_into()
+                .expect("Failed to convert bytes into LBA."),
+        );
+
         Partition {
             offset: 0x1be,
             flag_byte: entry[0],
             last_sector: CHS::from_bytes(last_chs_bytes),
             first_sector: CHS::from_bytes(first_chs_bytes),
             partition_type: 0x06,
-            first_lba: u32::from_le_bytes(
-                entry[8..12]
-                    .try_into()
-                    .expect("Failed to convert bytes to LBA value."),
-            ),
+            first_lba: first_lba,
             sector_count: sector_count,
             boot_record: VBR::new(sector_count),
-            last_lba: sector_count - 63,
+            last_lba: sector_count + (first_lba - 1),
             FAT: FAT::new(sector_count),
         }
     }
