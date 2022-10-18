@@ -6,7 +6,7 @@ use crate::fs::vbr::VBR;
 #[cfg(test)]
 mod tests;
 
-#[allow(non_snake_case)
+#[allow(non_snake_case)]
 #[derive(Debug, PartialEq)]
 pub struct Partition {
     pub(crate) offset: u16,
