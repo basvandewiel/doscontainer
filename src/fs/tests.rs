@@ -1,8 +1,11 @@
+use crate::disk::Disk;
+use crate::fs::fat::FAT;
+use crate::fs::Cluster;
 use crate::fs::File;
 use crate::fs::FileAttributes;
-use crate::fs::fat::FAT;
 use crate::fs::VBR;
-use crate::fs::Cluster;
+use crate::partition::Partition;
+use std::fs;
 
 #[test]
 pub fn attributes_empty() {
@@ -149,7 +152,7 @@ pub fn iosys_to_clusters() {
         reference_clusters.push(Cluster::new(value));
     }
     let clusters = fat.allocate_clusters(&io_sys);
-    // assert_eq!(clusters, reference_clusters);
+    assert_eq!(clusters, reference_clusters);
 }
 
 #[test]
@@ -167,5 +170,26 @@ pub fn msdossys_to_clusters() {
         reference_clusters.push(Cluster::new(value));
     }
     let clusters = fat.allocate_clusters(&msdos_sys);
-    // assert_eq!(clusters, reference_clusters);
+    assert_eq!(clusters, reference_clusters);
+}
+
+/// Write a 100MB test disk, partition and format it, then compare to what MS-DOS would do.
+/// This only passes when the actual on-disk bytes are 100% identical to what MS-DOS does.
+/// 1. Create the disk and write to persistent storage.
+/// 2. Read the relevant bytes back from the stored file
+/// 3. Delete the temporary disk image file because it's not needed anymore.
+/// 4. Compare the loaded bytes to the reference values coded into this function.
+#[test]
+pub fn empty_fat_testcase() {
+    let mut disk = Disk::new(
+        "55c61cb4e1d0094323778bfc00318edf5f35c645052c7b303a62cbf1b31c3651.raw",
+        100000000,
+    );
+    let mut partition = Partition::new(&disk, 1, 6, 0);
+    partition.format();
+    disk.push_partition(partition);
+    disk.write();
+    fs::remove_file("55c61cb4e1d0094323778bfc00318edf5f35c645052c7b303a62cbf1b31c3651.raw")
+        .unwrap();
+    assert_eq!(3, 4); // Nonsensical comparison to always fail until we finish this function
 }

@@ -20,12 +20,11 @@ struct Args {
 fn main() {
     let args = Args::parse();
     let mut disk = Disk::new(args.path.as_str(), args.size);
-    let bootpart = Partition::new(&disk, 1, 6, 0);
+    let mut bootpart = Partition::new(&disk, 1, 6, 0);
+    bootpart.format();
     if args.debug {
         println!("{:?}", bootpart);
     }
     disk.push_partition(bootpart);
     disk.write();
-    // let disk = Disk::load(&args.path);
-    // println!("{:?}", disk);
 }

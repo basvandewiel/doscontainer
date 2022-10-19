@@ -22,8 +22,7 @@ fn partition_roundtrip() {
     assert_eq!(partition.last_sector, reconstituted_partition.last_sector);
     assert_eq!(partition.sector_count, reconstituted_partition.sector_count);
     assert_eq!(partition.last_lba, reconstituted_partition.last_lba);
-    assert_eq!(partition.boot_record, reconstituted_partition.boot_record);
-    assert_eq!(partition.FAT, reconstituted_partition.FAT);
+    assert_eq!(partition.sectors, reconstituted_partition.sectors);
 }
 
 #[test]
@@ -47,6 +46,5 @@ fn partition__100mb_roundtrip() {
     assert_eq!(partition.last_sector, reconstituted_partition.last_sector);
     assert_eq!(partition.sector_count, reconstituted_partition.sector_count);
     assert_eq!(partition.last_lba, reconstituted_partition.last_lba);
-    assert_eq!(partition.boot_record, reconstituted_partition.boot_record);
-    assert_eq!(partition.FAT, reconstituted_partition.FAT);
+    assert_eq!(partition.sectors, reconstituted_partition.sectors);
 }

@@ -2,6 +2,7 @@ use crate::disk::chs::*;
 use crate::disk::*;
 use crate::fs::fat::FAT;
 use crate::fs::vbr::VBR;
+use crate::sector::Sector;
 
 #[cfg(test)]
 mod tests;
@@ -17,8 +18,7 @@ pub struct Partition {
     pub(crate) last_sector: CHS,
     pub(crate) sector_count: u32,
     pub(crate) last_lba: u32,
-    pub(crate) boot_record: VBR,
-    pub(crate) FAT: FAT,
+    sectors: Vec<Sector>, // Sectors shouldn't be accessible from anywhere else
 }
 
 impl Partition {
@@ -62,10 +62,26 @@ impl Partition {
             first_lba: start_sector,
             last_lba: last_lba,
             sector_count: requested_sectors,
-            boot_record: VBR::new(requested_sectors),
-            FAT: FAT::new(requested_sectors),
+            sectors: Vec::<Sector>::new(),
         };
         return my_partition;
+    }
+
+    /// Format the partition as FAT16
+    pub fn format(&mut self) {
+        let fat = FAT::new(self.sector_count);
+        let vbr = VBR::new(self.sector_count);
+        let mut bootsector = Sector::new(usize::try_from(self.first_lba).expect("Failed conversion!"));
+        for (i, byte) in vbr.as_bytes().iter().enumerate() {
+            bootsector.write_byte(i, *byte);
+        }
+        self.sectors.push(bootsector);
+    }
+
+    /// Return the Sectors as an immutable ref, prevent modification
+    /// from outside the partition.
+    pub fn get_sectors(&self) -> &Vec::<Sector> {
+        &self.sectors
     }
 
     /// The first byte of the partition on the underlying disk, as a u64 for easy consumption by StreamSlice
@@ -131,9 +147,8 @@ impl Partition {
             partition_type: 0x06,
             first_lba: first_lba,
             sector_count: sector_count,
-            boot_record: VBR::new(sector_count),
             last_lba: sector_count + (first_lba - 1),
-            FAT: FAT::new(sector_count),
+            sectors: Vec::<Sector>::new(),
         }
     }
 }
