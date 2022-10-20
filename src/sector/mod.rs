@@ -2,7 +2,7 @@
 /// the smallest unit of data a Disk can work with. The data is kept in a Vec<u8> internally.
 /// The position of the sector is the LBA address and we keep a 'dirty' flag to see if the
 /// sector is present on the disk.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Sector {
     data: Vec<u8>,
     dirty: bool,
