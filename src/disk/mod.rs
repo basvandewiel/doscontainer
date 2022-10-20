@@ -78,9 +78,21 @@ impl Disk {
         return *bootcode;
     }
 
-    /// Add a sector to the end of the current Disk structure
+    /// Add a sector to the disk, sort the Sector structs
+    /// every time we do this to guarantee position in the vector
+    /// lines up with the Sector's own position field. It also bombs
+    /// out when we try to overwrite an existing sector, since that's
+    /// not something that's supposed to happen at all. Remember, this
+    /// is *NOT* a live filesystem driver but a one-off generator.
     pub fn push_sector(&mut self, sector: Sector) {
+        let newpos = sector.get_position();
+        for sector in &self.sectors {
+            if sector.get_position() == newpos {
+                panic!("Cannot overwrite an existing sector!");
+            }
+        }
         self.sectors.push(sector);
+        self.sectors.sort();
     }
 
     /// Load a complete Disk struct from an existing file

@@ -4,18 +4,18 @@
 /// sector is present on the disk.
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Sector {
+    position: usize,
     data: Vec<u8>,
     dirty: bool,
-    position: usize,
 }
 
 impl Sector {
     /// Create a new Sector
     pub fn new(position: usize) -> Self {
         Sector {
+            position: position,
             data: vec![0; 512],
             dirty: true,
-            position: position,
         }
     }
 
