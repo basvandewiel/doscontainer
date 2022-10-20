@@ -221,6 +221,6 @@ pub fn msdos_vbr_testcase() {
 
     fs::remove_file("55c61cb4e1d0094323778bfc00318edf5f35c645052c7b303a62cbf1b31c3651.raw")
         .unwrap();
-    assert_eq!(vbr_bytes, reference_bytes); // Nonsensical comparison to always fail until we finish this function
+    assert_eq!(vbr_bytes, reference_bytes);
 }
 x
