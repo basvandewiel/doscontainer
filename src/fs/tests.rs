@@ -223,4 +223,4 @@ pub fn msdos_vbr_testcase() {
         .unwrap();
     assert_eq!(vbr_bytes, reference_bytes);
 }
-x
+
