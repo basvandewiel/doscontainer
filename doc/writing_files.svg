@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   sodipodi:docname="writing_files.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     showgrid="false"
+     showguides="true"
+     inkscape:zoom="2.8160217"
+     inkscape:cx="344.63513"
+     inkscape:cy="705.96047"
+     inkscape:window-width="3840"
+     inkscape:window-height="2091"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <sodipodi:guide
+       position="4.9162608,43.089583"
+       orientation="1,0"
+       id="guide666"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="202.72346,-29.208375"
+       orientation="1,0"
+       id="guide668"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <defs
+     id="defs2">
+    <rect
+       x="420.55395"
+       y="622.62315"
+       width="315.07908"
+       height="105.04624"
+       id="rect2294" />
+    <marker
+       style="overflow:visible"
+       id="marker2248"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="TriangleStart"
+       markerWidth="5.3244081"
+       markerHeight="6.155385"
+       viewBox="0 0 5.3244081 6.1553851"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path2246" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="TriangleStart"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="TriangleStart"
+       markerWidth="5.3244081"
+       markerHeight="6.155385"
+       viewBox="0 0 5.3244081 6.1553851"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.5)"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:context-stroke;stroke-width:1pt"
+         d="M 5.77,0 -2.88,5 V -5 Z"
+         id="path135" />
+    </marker>
+    <rect
+       x="400.40141"
+       y="577.57539"
+       width="261.89568"
+       height="129.54751"
+       id="rect1348" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#338000;stroke-width:0.285409"
+       id="rect171"
+       width="197.81511"
+       height="10.016656"
+       x="4.9069939"
+       y="248.49487" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.87475px;fill:#ffffff;stroke-width:0.656228"
+       x="7.2619324"
+       y="256.04321"
+       id="text335"><tspan
+         sodipodi:role="line"
+         id="tspan333"
+         style="fill:#ffffff;stroke-width:0.656228"
+         x="7.2619324"
+         y="256.04321">Disk image file</tspan></text>
+    <rect
+       style="fill:#338000;stroke-width:0.285409"
+       id="rect171-7"
+       width="197.81511"
+       height="10.016656"
+       x="4.890099"
+       y="235.71831" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.87475px;fill:#ffffff;stroke-width:0.656228"
+       x="7.5449166"
+       y="243.3367"
+       id="text335-0"><tspan
+         sodipodi:role="line"
+         id="tspan333-9"
+         style="fill:#ffffff;stroke-width:0.656228"
+         x="7.5449166"
+         y="243.3367">Sectors</tspan></text>
+    <g
+       id="g614"
+       transform="translate(-0.56510735,2.1780539)">
+      <rect
+         style="fill:#338000;stroke-width:0.0982804"
+         id="rect171-3"
+         width="23.456163"
+         height="10.016656"
+         x="5.458498"
+         y="219.41357" />
+      <text
+         xml:space="preserve"
+         style="font-size:7.87475px;fill:#ffffff;stroke-width:0.656228"
+         x="6.7314663"
+         y="227.23318"
+         id="text335-6"><tspan
+           sodipodi:role="line"
+           id="tspan333-7"
+           style="fill:#ffffff;stroke-width:0.656228"
+           x="6.7314663"
+           y="227.23318">MBR</tspan></text>
+    </g>
+    <rect
+       style="fill:#338000;stroke-width:0.26549"
+       id="rect171-3-5"
+       width="171.16766"
+       height="10.016656"
+       x="31.346249"
+       y="221.56772" />
+    <rect
+       style="fill:#338000;stroke-width:0.231216"
+       id="rect171-3-5-1"
+       width="129.8261"
+       height="10.016656"
+       x="72.909279"
+       y="207.76324" />
+    <rect
+       style="fill:#338000;stroke-width:0.231216"
+       id="rect171-3-5-1-3"
+       width="129.8261"
+       height="10.016656"
+       x="72.949654"
+       y="194.73454" />
+    <rect
+       style="fill:#338000;stroke-width:0.0933175"
+       id="rect171-3-5-6"
+       width="21.147146"
+       height="10.016656"
+       x="50.464706"
+       y="207.76324" />
+    <rect
+       style="fill:#338000;stroke-width:0.0859755"
+       id="rect171-3-5-3"
+       width="17.950424"
+       height="10.016656"
+       x="31.325485"
+       y="207.76324" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.87475px;fill:#ffffff;stroke-width:0.656228"
+       x="33.411663"
+       y="229.43852"
+       id="text335-6-3"><tspan
+         sodipodi:role="line"
+         id="tspan333-7-5"
+         style="fill:#ffffff;stroke-width:0.656228"
+         x="33.411663"
+         y="229.43852">Partition</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.87475px;fill:#ffffff;stroke-width:0.656228"
+       x="33.041519"
+       y="215.58287"
+       id="text335-6-3-6"><tspan
+         sodipodi:role="line"
+         id="tspan333-7-5-0"
+         style="fill:#ffffff;stroke-width:0.656228"
+         x="33.041519"
+         y="215.58287">VBR</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.87475px;fill:#ffffff;stroke-width:0.656228"
+       x="52.149868"
+       y="215.5553"
+       id="text335-6-3-6-2"><tspan
+         sodipodi:role="line"
+         id="tspan333-7-5-0-6"
+         style="fill:#ffffff;stroke-width:0.656228"
+         x="52.149868"
+         y="215.5553">FAT's</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.87475px;fill:#ffffff;stroke-width:0.656228"
+       x="74.037857"
+       y="215.25761"
+       id="text335-6-3-6-2-8"><tspan
+         sodipodi:role="line"
+         id="tspan333-7-5-0-6-7"
+         style="fill:#ffffff;stroke-width:0.656228"
+         x="74.037857"
+         y="215.25761">Data region</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:7.87475px;fill:#ffffff;stroke-width:0.656228"
+       x="74.411736"
+       y="202.19118"
+       id="text335-6-3-6-2-8-7"><tspan
+         sodipodi:role="line"
+         id="tspan333-7-5-0-6-7-5"
+         style="fill:#ffffff;stroke-width:0.656228"
+         x="74.411736"
+         y="202.19118">Clusters</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;fill:#ffffff;stroke-width:0.264583"
+       x="4.7409048"
+       y="235.09204"
+       id="text675"><tspan
+         sodipodi:role="line"
+         id="tspan673"
+         style="fill:#000000;stroke-width:0.264583"
+         x="4.7409048"
+         y="235.09204">0</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;fill:#000000;stroke-width:0.264583"
+       x="31.850489"
+       y="235.09204"
+       id="text731"><tspan
+         sodipodi:role="line"
+         id="tspan729"
+         style="stroke-width:0.264583"
+         x="31.850489"
+         y="235.09204">63</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;fill:#000000;stroke-width:0.264583"
+       x="50.654835"
+       y="220.80472"
+       id="text731-9"><tspan
+         sodipodi:role="line"
+         id="tspan729-2"
+         style="stroke-width:0.264583"
+         x="50.654835"
+         y="220.80472">64</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.175px;fill:#000000;stroke-width:0.264583"
+       x="73.495407"
+       y="220.79202"
+       id="text731-9-0"><tspan
+         sodipodi:role="line"
+         id="tspan729-2-2"
+         style="stroke-width:0.264583"
+         x="73.495407"
+         y="220.79202">?</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#TriangleStart)"
+       d="m 72.166241,145.68751 -11.99596,56.99925"
+       id="path1342"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#marker2248)"
+       d="m 90.444803,143.36539 16.109117,49.74956"
+       id="path1344"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0" />
+    <ellipse
+       style="fill:#f4d7d7;stroke-width:0.264583"
+       id="path1239"
+       cx="83.270714"
+       cy="136.57373"
+       rx="22.246019"
+       ry="14.882551" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.56014px;fill:#000000;stroke-width:0.630011"
+       x="64.08503"
+       y="138.44975"
+       id="text1295"><tspan
+         sodipodi:role="line"
+         id="tspan1293"
+         style="fill:#000000;stroke-width:0.630011"
+         x="64.08503"
+         y="138.44975">System file</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.26458333,0,0,0.26458333,-46.686067,-50.274762)"
+       id="text1346"
+       style="white-space:pre;shape-inside:url(#rect1348);fill:#000000"><tspan
+         x="400.40234"
+         y="588.49467"
+         id="tspan2433">1. Calculate number of required clusters.
+</tspan><tspan
+         x="400.40234"
+         y="603.49467"
+         id="tspan2435">2. Find available clusters*
+</tspan><tspan
+         x="400.40234"
+         y="618.49467"
+         id="tspan2437">3. Allocate them in FAT chain
+</tspan><tspan
+         x="400.40234"
+         y="633.49467"
+         id="tspan2439">4. Write bytes to the corresponding data area</tspan></text>
+    <text
+       xml:space="preserve"
+       transform="matrix(0.2021802,0,0,0.2021802,53.977452,51.988368)"
+       id="text2292"
+       style="white-space:pre;shape-inside:url(#rect2294);fill:#000000"><tspan
+         x="420.55469"
+         y="633.54155"
+         id="tspan2441">* Base assumption is that we always have enough </tspan><tspan
+         x="420.55469"
+         y="648.54155"
+         id="tspan2443">clusters available. This is a valid assumption because </tspan><tspan
+         x="420.55469"
+         y="663.54155"
+         id="tspan2445">we only deal with bare minimum system files on a disk </tspan><tspan
+         x="420.55469"
+         y="678.54155"
+         id="tspan2447">that's supposed to host a game/app that will be much </tspan><tspan
+         x="420.55469"
+         y="693.54155"
+         id="tspan2449">bigger.</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:8.02653px;fill:#000000;stroke-width:0.668877"
+       x="4.4312425"
+       y="86.711647"
+       id="text2359"><tspan
+         sodipodi:role="line"
+         id="tspan2357"
+         style="stroke-width:0.668877"
+         x="4.4312425"
+         y="86.711647">Doscontainer: write system files to disk</tspan></text>
+  </g>
+</svg>
