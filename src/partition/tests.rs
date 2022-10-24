@@ -5,7 +5,7 @@ use crate::partition::Partition;
 fn partition_roundtrip() {
     let mut disk = Disk::new("bogus_test_file.raw", 50000000);
     let partition = Partition::new(&disk, 1, 63, 0);
-    let bytes = partition.as_bytes();
+    let bytes = partition.mbr_entry();
     let mut bytes_array = [0u8; 16];
     for (i, byte) in bytes.iter().enumerate() {
         bytes_array[i] = *byte;
@@ -29,7 +29,7 @@ fn partition_roundtrip() {
 fn partition__100mb_roundtrip() {
     let mut disk = Disk::new("bogus_test_file.raw", 100000000);
     let partition = Partition::new(&disk, 1, 63, 0);
-    let bytes = partition.as_bytes();
+    let bytes = partition.mbr_entry();
     let mut bytes_array = [0u8; 16];
     for (i, byte) in bytes.iter().enumerate() {
         bytes_array[i] = *byte;
