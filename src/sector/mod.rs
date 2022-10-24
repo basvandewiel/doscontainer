@@ -2,10 +2,10 @@
 /// the smallest unit of data a Disk can work with. The data is kept in a Vec<u8> internally.
 /// The position of the sector is the LBA address and we keep a 'dirty' flag to see if the
 /// sector is present on the disk.
-#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Copy, Clone)]
 pub struct Sector {
     position: usize,
-    data: Vec<u8>,
+    data: [u8; 512],
     dirty: bool,
 }
 
@@ -14,7 +14,7 @@ impl Sector {
     pub fn new(position: usize) -> Self {
         Sector {
             position: position,
-            data: vec![0; 512],
+            data: [0u8; 512],
             dirty: true,
         }
     }
