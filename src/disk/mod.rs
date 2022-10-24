@@ -240,7 +240,7 @@ impl Disk {
         }
         // Walk through Partition structs in the Disk object and add table entries for them.
         for partition in &self.partitions {
-            let bytes = partition.as_bytes();
+            let bytes = partition.mbr_entry();
             let mut counter = partition.offset;
             for byte in bytes {
                 bootsector.write_byte(counter.into(), byte);

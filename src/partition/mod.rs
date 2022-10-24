@@ -94,8 +94,9 @@ impl Partition {
         let end_offset = self.last_lba * 512;
         return u64::from(end_offset);
     }
+
     /// Return the bytes to be written to the MBR's partition table.
-    pub fn as_bytes(&self) -> Vec<u8> {
+    pub fn mbr_entry(&self) -> Vec<u8> {
         let mut bytes = Vec::<u8>::new();
         let start_chs = self.first_sector.as_bytes();
         let end_chs = self.last_sector.as_bytes();
@@ -115,6 +116,7 @@ impl Partition {
         }
         return bytes;
     }
+
     /// Generate a Partition struct from an MBR entry
     pub fn from_bytes(entry: [u8; 16]) -> Partition {
         let sector_count = u32::from_le_bytes(
